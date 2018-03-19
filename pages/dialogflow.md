@@ -311,6 +311,14 @@ parameter without changing it in every intent that uses it.
 
 ## Rich message response
 
+In this section we'll see how we can send back a proper response to DialogFlow.
+For now all we did was sending back a `200` code and nothing else. In that case
+or in any case where DialogFlow can't parse the webhook's response, it will
+fallback to the responses defined in the intent that matched.
+
+The [dialogflow-go-webhook](https://github.com/leboncoin/dialogflow-go-webhook)
+package contains all the possible types your webhook could answer.
+
 ## Sending back contexts
 
 

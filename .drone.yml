@@ -1,0 +1,24 @@
+pipeline:
+  remove:
+    image: appleboy/drone-ssh
+    host: blog.depado.eu
+    username: depado
+    secrets:
+      - source: deploy_key
+        target: ssh_key
+    script:
+      - rm -r /home/depado/smallblog/pages/*
+      - echo world
+
+  deploy:
+    image: appleboy/drone-scp
+    host: blog.depado.eu
+    username: depado
+    target: /home/depado/smallblog/pages/
+    source: ./pages/
+    strip_components: 2
+    secrets:
+      - source: deploy_key
+        target: scp_key
+    when:
+      event: push
