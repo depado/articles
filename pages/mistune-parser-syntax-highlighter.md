@@ -1,6 +1,6 @@
 title: Mistune Syntax Highlighter, MathJax support and centered images
 description: Server rendering syntax highlighting with Mistune and other stuff
-slug: mistune-parser-syntax-highlighter-mathjax-support-and-centered-images
+slug: mistune-parser-syntax-mathjax-centered-images
 author: Depado
 date: 2015-09-29 23:51:00
 tags:
