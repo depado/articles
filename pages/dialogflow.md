@@ -120,6 +120,8 @@ The phrase the user said on the right section of the screenshot isn't defined
 in our training phrases. Yet, DialogFlow knows it's the `Search` intent and
 knows that `mojito` refers to a cocktail name. 
 
+![amazed2](/assets/dialogflow/amazed-2.gif)
+
 ## Entities
 
 As [the docs](https://dialogflow.com/docs/entities) define them : 
@@ -149,7 +151,7 @@ and one that will effectively search a cocktail that matches the users's
 preferences. There's no logic behind it yet, we'll see that in the Webhook
 section.
 
-# Writing a webhook
+# Webhook : Introduction
 
 ## Where's the Go SDK ?
 
@@ -161,8 +163,9 @@ especially not for the v2 version of the API which only supports three
 languages at the time of writing : Java, Python and Node.js.
 
 But after all, you just want to wrap a small piece of the DialogFlow API, which
-is receiving a webhook and responding. So you start writing your own package
-and end up in the [WebhookRequest](https://dialogflow.com/docs/reference/api-v2/rest/v2beta1/WebhookRequest)
+is : Receiving a JSON payload and responding with another JSON payload. 
+So you start writing your own package and end up in the 
+[WebhookRequest](https://dialogflow.com/docs/reference/api-v2/rest/v2beta1/WebhookRequest)
 section of the documentation. And suddenly it doesn't look so easy.
 
 So I wrote a package that will make your life easier :
@@ -170,7 +173,8 @@ So I wrote a package that will make your life easier :
 <div class="github-card" data-user="leboncoin" data-repo="dialogflow-go-webhook"></div>
 <script src="http://lab.lepture.com/github-cards/widget.js"></script>
 
-You can follow the instructions in the [README](https://github.com/leboncoin/dialogflow-go-webhook#dialogflow-go-webhook)
+You can follow the instructions in the 
+[README](https://github.com/leboncoin/dialogflow-go-webhook#dialogflow-go-webhook)
 to install this package. The rest of this tutorial will reference this package
 as `df` in the Go code snippets.
 
@@ -293,9 +297,9 @@ func random(c *gin.Context, dfr *df.Request) {
 }
 ```
 
-## Fulfillment for the Random intent
+# Webhook : Random intent
 
-### Getting a random cocktail
+## Getting a random cocktail
 
 The subject here isn't how to create an API client. So I created one here : 
 [github.com/Depado/articles/code/dialogflow/cocktail](https://github.com/Depado/articles/tree/master/code/dialogflow/cocktail).
@@ -324,7 +328,7 @@ Your webhook should receive the request and properly call your `random` function
 Now we'll need to format the response so DialogFlow understands what the webhook
 responds.
 
-### Sending back a rich message
+## Sending back a rich message
 
 Once we get the random drink we'll send back what's called a `Fulfillment`.
 
@@ -342,8 +346,44 @@ c.JSON(http.StatusOK, dff)
 Let's try to ask the DialogFlow agent for a random drink again. Surprise, now
 it will output something like : "I found that cocktail : Daiquiri"
 
-`FulfillmentMessages` is what will hold our messages that needs to be sent to
-all the platforms. When no platform is specified, DialogFlow will interpret it
+![amazed](/assets/dialogflow/amazed.gif)
+
+The `FulfillmentMessages` is what we'll use to send back data to the user, and
+it is a slice of `df.Message` (aliased as `df.Messages`).
+
+```go
+// Message is a struct holding a platform and a RichMessage.
+// Used in the FulfillmentMessages of the response sent back to dialogflow
+type Message struct {
+	Platform
+	RichMessage RichMessage
+}
+```
+
+Message is composed of two fields, the first one is the platform. This
+information is used by DialogFlow to send platform-specific messages to the
+user. Which means you can send back a different message if the user is on
+messenger or on Actions on Google for example. Platforms are defined like this :
+
+```go
+// Platform is a simple type intended to be used with responses
+type Platform string
+
+// Platform constants, used in the webhook responses
+const (
+	Unspecified     Platform = "PLATFORM_UNSPECIFIED"
+	Facebook        Platform = "FACEBOOK"
+	Slack           Platform = "SLACK"
+	Telegram        Platform = "TELEGRAM"
+	Kik             Platform = "KIK"
+	Skype           Platform = "SKYPE"
+	Line            Platform = "LINE"
+	Viber           Platform = "VIBER"
+	ActionsOnGoogle Platform = "ACTIONS_ON_GOOGLE"
+)
+```
+
+When no platform is specified, DialogFlow will interpret it
 as its own response. This example uses two helper functions :
 
 - `df.ForGoogle` : Simply sets the `Platform` field to `df.ActionsOnGoogle` and
@@ -351,8 +391,7 @@ takes a `RichMessage` as argument.
 - `df.SingleSimpleResponse` takes two strings, one for the spoken text and one
 for the written text and will format it nicely.
 
-Such functions are necessary to keep your code concise.
-
+# Webhook : Search intent
 
 ## Difference between Parameters and Contexts
 
@@ -389,3 +428,5 @@ package contains all the possible types your webhook could answer.
 
 Thanks to [@ashleymcnamara](https://github.com/ashleymcnamara) for the amazing
 [Gopher Artworks](https://github.com/ashleymcnamara/gophers).
+
+![dancing](/assets/dialogflow/dancing.gif)
