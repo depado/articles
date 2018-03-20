@@ -32,6 +32,8 @@ a Go webhook.
 
 ## What is DialogFlow ?
 
+![dialogflow-logo](/assets/dialogflow/dialogflow-logo.png)
+
 DialogFlow is a tool that does [NLP](https://en.wikipedia.org/wiki/Natural-language_processing)
 and can be used to detect keywords and intents in a user's sentence. Its role is
 to help building chatbots using [Machine Learning](https://en.wikipedia.org/wiki/Machine_learning).
@@ -214,7 +216,7 @@ so you can parse what DialogFlow sends you.
 
 ## Incoming Request
 
-![flow](/assets/dialogflow/webhook-flow.svg)
+![flow](/assets/dialogflow/flow.svg)
 
 When DialogFlow detects an intent it will send a complex JSON object to your
 webhook. And there's only one webhook for all the intents. So we're going to
@@ -290,6 +292,67 @@ func random(c *gin.Context, dfr *df.Request) {
 
 }
 ```
+
+## Fulfillment for the Random intent
+
+### Getting a random cocktail
+
+The subject here isn't how to create an API client. So I created one here : 
+[github.com/Depado/articles/code/dialogflow/cocktail](https://github.com/Depado/articles/tree/master/code/dialogflow/cocktail).
+
+We'll use that package when our `random(*gin.Context, *df.Request)` function
+is called. We don't need to retrieve parameters or contexts here, it's just
+a random cocktail and we don't let the user specify anything.
+
+```go
+func random(c *gin.Context, dfr *df.Request) {
+	var err error
+	var d *cocktail.FullDrink
+
+	if d, err = cocktail.C.GetRandomDrink(); err != nil {
+		logrus.WithError(err).Error("Coudln't get random drink")
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+	fmt.Println(d)
+	c.JSON(http.StatusOK, gin.H{})
+}
+```
+
+Let's try and ask our DialogFlow agent for a random drink in the test console.
+Your webhook should receive the request and properly call your `random` function.
+Now we'll need to format the response so DialogFlow understands what the webhook
+responds.
+
+### Sending back a rich message
+
+Once we get the random drink we'll send back what's called a `Fulfillment`.
+
+```go
+out := fmt.Sprintf("I found that cocktail : %s", d.StrDrink)
+dff := &df.Fulfillment{
+	FulfillmentMessages: df.Messages{
+		{RichMessage: df.Text{Text: []string{out}}},
+		df.ForGoogle(df.SingleSimpleResponse(out, out)),
+	},
+}
+c.JSON(http.StatusOK, dff)
+```
+
+Let's try to ask the DialogFlow agent for a random drink again. Surprise, now
+it will output something like : "I found that cocktail : Daiquiri"
+
+`FulfillmentMessages` is what will hold our messages that needs to be sent to
+all the platforms. When no platform is specified, DialogFlow will interpret it
+as its own response. This example uses two helper functions :
+
+- `df.ForGoogle` : Simply sets the `Platform` field to `df.ActionsOnGoogle` and
+takes a `RichMessage` as argument.
+- `df.SingleSimpleResponse` takes two strings, one for the spoken text and one
+for the written text and will format it nicely.
+
+Such functions are necessary to keep your code concise.
+
 
 ## Difference between Parameters and Contexts
 

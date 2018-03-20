@@ -1,9 +1,13 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 
+	"github.com/sirupsen/logrus"
+
+	"github.com/Depado/articles/code/dialogflow/cocktail"
 	"github.com/gin-gonic/gin"
 	df "github.com/leboncoin/dialogflow-go-webhook"
 )
@@ -13,7 +17,23 @@ func search(c *gin.Context, dfr *df.Request) {
 }
 
 func random(c *gin.Context, dfr *df.Request) {
-	c.JSON(http.StatusOK, gin.H{})
+	var err error
+	var d *cocktail.FullDrink
+
+	if d, err = cocktail.C.GetRandomDrink(); err != nil {
+		logrus.WithError(err).Error("Coudln't get random drink")
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+
+	out := fmt.Sprintf("I found that cocktail : %s", d.StrDrink)
+	dff := &df.Fulfillment{
+		FulfillmentMessages: df.Messages{
+			{RichMessage: df.Text{Text: []string{out}}},
+			df.ForGoogle(df.SingleSimpleResponse(out, out)),
+		},
+	}
+	c.JSON(http.StatusOK, dff)
 }
 
 func webhook(c *gin.Context) {

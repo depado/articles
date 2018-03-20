@@ -46,7 +46,7 @@ type FullDrink struct {
 
 // FullDrinkList contains a slice of FullDrink
 type FullDrinkList struct {
-	Drinks []FullDrink `json:"drinks"`
+	Drinks []*FullDrink `json:"drinks"`
 }
 
 // Drink is a minimal representation of a FullDrink
@@ -58,5 +58,5 @@ type Drink struct {
 
 // DrinkList contains a slice of Drink
 type DrinkList struct {
-	Drinks []Drink `json:"drinks"`
+	Drinks []*Drink `json:"drinks"`
 }
