@@ -2,9 +2,9 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"net/http"
 
+	"github.com/davecgh/go-spew/spew"
 	"github.com/sirupsen/logrus"
 
 	"github.com/Depado/articles/code/dialogflow/cocktail"
@@ -12,7 +12,50 @@ import (
 	df "github.com/leboncoin/dialogflow-go-webhook"
 )
 
+func cardFromDrink(d *cocktail.FullDrink) df.BasicCard {
+	card := df.BasicCard{
+		Title:         d.StrDrink,
+		FormattedText: d.StrInstructions,
+		Image: &df.Image{
+			ImageURI: d.StrDrinkThumb,
+		},
+	}
+	return card
+}
+
+type searchParams struct {
+	Alcohol   string `json:"alcohol"`
+	DrinkType string `json:"drink-type"`
+	Name      string `json:"name"`
+}
+
 func search(c *gin.Context, dfr *df.Request) {
+	var err error
+	var p searchParams
+
+	if err = dfr.GetParams(&p); err != nil {
+		logrus.WithError(err).Error("Couldn't get parameters")
+		c.AbortWithStatus(http.StatusBadRequest)
+		return
+	}
+
+	spew.Dump(p)
+
+	c.JSON(http.StatusOK, gin.H{})
+}
+
+func specify(c *gin.Context, dfr *df.Request) {
+	var err error
+	var p searchParams
+
+	if err = dfr.GetContext("Search-followup", &p); err != nil {
+		logrus.WithError(err).Error("Couldn't get parameters")
+		c.AbortWithStatus(http.StatusBadRequest)
+		return
+	}
+
+	spew.Dump(p)
+
 	c.JSON(http.StatusOK, gin.H{})
 }
 
@@ -30,7 +73,7 @@ func random(c *gin.Context, dfr *df.Request) {
 	dff := &df.Fulfillment{
 		FulfillmentMessages: df.Messages{
 			{RichMessage: df.Text{Text: []string{out}}},
-			df.ForGoogle(df.SingleSimpleResponse(out, out)),
+			df.ForGoogle(cardFromDrink(d)),
 		},
 	}
 	c.JSON(http.StatusOK, dff)
@@ -44,16 +87,19 @@ func webhook(c *gin.Context) {
 		c.AbortWithStatus(http.StatusBadRequest)
 		return
 	}
+	clog := logrus.WithField("action", dfr.QueryResult.Action)
 
 	switch dfr.QueryResult.Action {
 	case "search":
-		log.Println("Search action detected")
+		clog.Info("Detected")
 		search(c, dfr)
 	case "random":
-		log.Println("Random action detected")
+		clog.Info("Detected")
 		random(c, dfr)
+	case "search.specify":
+		clog.Info("Detected")
 	default:
-		log.Println("Unknown action")
+		clog.Warn("Unknown")
 		c.AbortWithStatus(http.StatusNotFound)
 	}
 }

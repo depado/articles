@@ -1,4 +1,4 @@
-title: "DialogFlow : A complete guide"
+title: "DialogFlow : A complete guide with webhook"
 description: A full and comprehensive guide on DialogFlow, how to use it and how to integrate your logic in your chatbot.
 slug: dialogflow-golang-webhook
 author: Depado
@@ -16,7 +16,8 @@ second one is to teach you how to create a Go webhook.
 
 If you already know what DialogFlow is and how to use it (for example creating
 the agent, intents, entities, follow-up, etc…) you can skip directly to the
-"Writing a webhook" section.
+"Writing a webhook" section. This guide will use the **v2 version of the 
+DialogFlow API**.
 
 What we'll see in this tutorial :
 
@@ -48,10 +49,10 @@ How great is that ?
 
 ## Integrations
 
-As stated earlier DialogFlow supports a wide range of integrations.
-Basically that means that DialogFlow knows how to speak to many services such
-as Facebook Messenger, Skype, Actions on Google, etc. That means your agent
-can work with all these platforms, and you don't have to write code to do so.
+As stated earlier, DialogFlow supports a wide range of integrations which means
+it knows how to communicate with various services such as Facebook Messenger,
+Actions on Google, Skype, etc. Which means your agent will work with every one
+of these platforms if you setup the integrations properly. 
 
 ## Webhook for DialogFlow
 
@@ -150,6 +151,28 @@ So for now your user can trigger two intents, one will randomly pick a cocktail
 and one that will effectively search a cocktail that matches the users's 
 preferences. There's no logic behind it yet, we'll see that in the Webhook
 section.
+
+Let's see how we could make our agent behave properly and accept that the user
+modifies his original request. For that we'll create a [follow-up intent](https://dialogflow.com/docs/intents#follow_up_intents).
+
+![followup](/assets/dialogflow/followup-search.png)
+
+A follow-up intent will be triggered if the user first matched the parent intent
+and not in any other case. So we want our conversation to look like this :
+
+"Can you give me the recipe of a cocktail without alcohol ?
+- Sure thing. I found a cocktail named 'Virgin Mojito'. Would you like me to
+read you the recipe or do you want to modify your search ?
+- Show me something with alcohol instead."
+
+It should keep the fact that the user wants a cocktail and not a basic drink
+but modify the fact that it's a non-alcoholic cocktail. To achieve that, 
+DialogFlow uses what's called [contexts](https://dialogflow.com/docs/contexts).
+
+As you may have noticed, your `Search` intent now outputs a `Search-followup`
+context. And your `Search Specify` receives this context. Which means every
+information the user filled in the first intent is also available to this
+intent.
 
 # Webhook : Introduction
 
@@ -330,6 +353,8 @@ responds.
 
 ## Sending back a rich message
 
+### Just a line of spoken text and written text
+
 Once we get the random drink we'll send back what's called a `Fulfillment`.
 
 ```go
@@ -391,6 +416,41 @@ takes a `RichMessage` as argument.
 - `df.SingleSimpleResponse` takes two strings, one for the spoken text and one
 for the written text and will format it nicely.
 
+### Sending back a card for Actions on Google
+
+Let's add a function that takes a `*cocktail.FullDrink` and turns it into a
+`df.BasicCard` :
+
+```go
+func cardFromDrink(d *cocktail.FullDrink) df.BasicCard {
+	card := df.BasicCard{
+		Title:         d.StrDrink,
+		FormattedText: d.StrInstructions,
+		Image: &df.Image{
+			ImageURI: d.StrDrinkThumb,
+		},
+	}
+	return card
+}
+```
+
+And modify the fulfillment our random function sends back :
+
+```go
+out := fmt.Sprintf("I found that cocktail : %s", d.StrDrink)
+dff := &df.Fulfillment{
+	FulfillmentMessages: df.Messages{
+		{RichMessage: df.Text{Text: []string{out}}},
+		df.ForGoogle(cardFromDrink(d)),
+	},
+}
+c.JSON(http.StatusOK, dff)
+```
+
+![card](/assets/dialogflow/card.png)
+
+![dancing](/assets/dialogflow/dancing.gif)
+
 # Webhook : Search intent
 
 ## Difference between Parameters and Contexts
@@ -411,22 +471,90 @@ If you work only with parameters you'll need to rewrite every parameter for
 every intent. Which makes your workflow complex since you can't change a
 parameter without changing it in every intent that uses it. 
 
-## Rich message response
+This will be the case for every follow-up intents.
 
-In this section we'll see how we can send back a proper response to DialogFlow.
-For now all we did was sending back a `200` code and nothing else. In that case
-or in any case where DialogFlow can't parse the webhook's response, it will
-fallback to the responses defined in the intent that matched.
+## Retrieving parameters 
 
-The [dialogflow-go-webhook](https://github.com/leboncoin/dialogflow-go-webhook)
-package contains all the possible types your webhook could answer.
+Our `Random` intent works well now. Let's switch to the `Search` intent. First
+we're going to define a structure that we'll unmarshal the parameters to. We
+will then use the function [`(*Request) GetParams(i interface{}) error`](https://godoc.org/github.com/leboncoin/dialogflow-go-webhook#Request.GetParams)
+to retrieve
+those.
+
+```go
+type searchParams struct {
+	Alcohol   string `json:"alcohol"`
+	DrinkType string `json:"drink-type"`
+	Name      string `json:"name"`
+}
+
+func search(c *gin.Context, dfr *df.Request) {
+	var err error
+	var p searchParams
+
+	if err = dfr.GetParams(&p); err != nil {
+		logrus.WithError(err).Error("Couldn't get parameters")
+		c.AbortWithStatus(http.StatusBadRequest)
+		return
+	}
+
+	spew.Dump(p)
+
+	c.JSON(http.StatusOK, gin.H{})
+}
+```
+
+You'll be able to see that we're effectively retrieving parameters that 
+DialogFlow sends to our webhook. So that's cool and we can definitely search
+for a cocktail that matches all these parameters. But then the user enters
+the followup intent `Specify` and simply says "without alcohol". Well, the 
+parameters are now pretty useless. And that's why DialogFlow creates a context
+for the follow-up intents !
+
+So let's say we have another function for the `Specify` follow-up intent, 
+which will be accessed with the `search.specify` action (remember, the field 
+just above the parameters) :
+
+```go
+func specify(c *gin.Context, dfr *df.Request) {
+	var err error
+	var p searchParams
+
+	if err = dfr.GetContext("Search-followup", &p); err != nil {
+		logrus.WithError(err).Error("Couldn't get parameters")
+		c.AbortWithStatus(http.StatusBadRequest)
+		return
+	}
+
+	spew.Dump(p)
+
+	c.JSON(http.StatusOK, gin.H{})
+}
+```
+
+That looks like our `search` function but this one is based on the context
+DialogFlow sets when the user enters the follow-up.
 
 ## Sending back contexts
 
+We won't cover this section in this article as it is already **really long**,
+but you have ways to send back context. Now one question that should pop in your
+mind should : "Why would I do that ? What are the use cases ?"
+
+Well for example if you show your user some results and want him to be able to
+go back, go to the next item or select one, you could send back a context
+containing a list of ID and a cursor (simple integer that points the current
+item the user wants to see). And then while your user is in this loop (which
+you'll be able to determine thanks to the `action` field) you'll be able to
+retrieve this context, make use of it and potentially alter it and send it back
+with the same ID. 
+
+To simplify the use and creation of contexts, you can use the 
+[`NewContext`](https://godoc.org/github.com/leboncoin/dialogflow-go-webhook#Request.NewContext)
+helper which will ensure the correct name of the context.
 
 # Thanks
 
 Thanks to [@ashleymcnamara](https://github.com/ashleymcnamara) for the amazing
 [Gopher Artworks](https://github.com/ashleymcnamara/gophers).
 
-![dancing](/assets/dialogflow/dancing.gif)
