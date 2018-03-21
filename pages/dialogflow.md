@@ -193,8 +193,10 @@ section of the documentation. And suddenly it doesn't look so easy.
 
 So I wrote a package that will make your life easier :
 
-<div class="github-card" data-user="leboncoin" data-repo="dialogflow-go-webhook"></div>
-<script src="http://lab.lepture.com/github-cards/widget.js"></script>
+
+<div class="github-card" data-github="leboncoin/dialogflow-go-webhook" data-width="400" data-height="154" data-theme="default"></div>
+<script src="//lab.lepture.com/github-cards/widget.js"></script>
+
 
 You can follow the instructions in the 
 [README](https://github.com/leboncoin/dialogflow-go-webhook#dialogflow-go-webhook)
@@ -561,8 +563,11 @@ and output sections of your intents).
 
 All the code in this article can be found [here](https://github.com/Depado/articles/tree/master/code/dialogflow).
 This is not production grade code, there's no configuration management, the
-cocktail client is lacking some functions (and the structs are ugly). But that's
-something I'll fix later.
+cocktail client is lacking some functions, the structs are ugly and everything
+is in the `main.go` file (or almost everything). 
+
+I intend to fix that as soon as possible and provide a functional webhook as
+well as a DialogFlow agent in `zip` form which you will be able to import.
 
 # Thanks
 
