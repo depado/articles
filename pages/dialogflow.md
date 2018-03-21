@@ -160,9 +160,9 @@ modifies his original request. For that we'll create a [follow-up intent](https:
 A follow-up intent will be triggered if the user first matched the parent intent
 and not in any other case. So we want our conversation to look like this :
 
-"Can you give me the recipe of a cocktail without alcohol ?
+"Can you give me the recipe of a cocktail without alcohol ?  
 - Sure thing. I found a cocktail named 'Virgin Mojito'. Would you like me to
-read you the recipe or do you want to modify your search ?
+read you the recipe or do you want to modify your search ?  
 - Show me something with alcohol instead."
 
 It should keep the fact that the user wants a cocktail and not a basic drink
@@ -505,11 +505,12 @@ func search(c *gin.Context, dfr *df.Request) {
 ```
 
 You'll be able to see that we're effectively retrieving parameters that 
-DialogFlow sends to our webhook. So that's cool and we can definitely search
-for a cocktail that matches all these parameters. But then the user enters
-the followup intent `Specify` and simply says "without alcohol". Well, the 
-parameters are now pretty useless. And that's why DialogFlow creates a context
-for the follow-up intents !
+DialogFlow sends to our webhook. We can definitely search for a cocktail which 
+matches all these parameters. But then the user enters
+the followup intent `Specify` by saying "without alcohol". Well, the 
+parameters are now pretty useless because it will only contain the information
+of the follow-up and we don't want the user to say again his whole search. 
+And that's why DialogFlow creates a context for the follow-up intents !
 
 So let's say we have another function for the `Specify` follow-up intent, 
 which will be accessed with the `search.specify` action (remember, the field 
@@ -538,20 +539,30 @@ DialogFlow sets when the user enters the follow-up.
 ## Sending back contexts
 
 We won't cover this section in this article as it is already **really long**,
-but you have ways to send back context. Now one question that should pop in your
-mind should : "Why would I do that ? What are the use cases ?"
+but you can send back one or multiple contexts to DialogFlow along with your
+messages. Now you can ask : "Why would I do that ? What are the use cases ?"
 
 Well for example if you show your user some results and want him to be able to
 go back, go to the next item or select one, you could send back a context
 containing a list of ID and a cursor (simple integer that points the current
 item the user wants to see). And then while your user is in this loop (which
 you'll be able to determine thanks to the `action` field) you'll be able to
-retrieve this context, make use of it and potentially alter it and send it back
-with the same ID. 
+retrieve this context, make use of it, potentially alter it and send it back
+with the same name. 
 
 To simplify the use and creation of contexts, you can use the 
 [`NewContext`](https://godoc.org/github.com/leboncoin/dialogflow-go-webhook#Request.NewContext)
 helper which will ensure the correct name of the context.
+
+Note that there's no need to mention these contexts in DialogFlow (in the input
+and output sections of your intents). 
+
+# Code
+
+All the code in this article can be found [here](https://github.com/Depado/articles/tree/master/code/dialogflow).
+This is not production grade code, there's no configuration management, the
+cocktail client is lacking some functions (and the structs are ugly). But that's
+something I'll fix later.
 
 # Thanks
 
