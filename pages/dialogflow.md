@@ -97,7 +97,7 @@ DialogFlow **training phrases**.
 
 ![random](/assets/dialogflow/random-intent.png)
 
-Now let's imagine the user says something like "I'm looking for a alcohol-free
+Now let's imagine the user says something like "I'm looking for an alcohol-free
 cocktail with coke in it". That won't match with our `Random` intent.
 We're going to tell DialogFlow how to parse this so it makes sense to it. We'll 
 need to tell it to match "alcohol-free", "cocktail" and "coke" so it can send 
@@ -141,7 +141,7 @@ Simple, right ? We simply define a set of terms that will match a single value
 webhook part, because the value on the left, is what your webhook will see if
 that entity is matched in your user's sentence.
 
-For now you can improve your agent by adding phrases that the user could say,
+For now, you can improve your agent by adding phrases that the user could say,
 and test it out in the console on the right, see if your intent is matched and
 check if the parameters are filled correctly.
 
