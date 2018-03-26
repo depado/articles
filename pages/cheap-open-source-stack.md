@@ -7,7 +7,8 @@ tags:
     - inspiration
     - stack
     - server
-    - ci/cd
+    - ci-cd
+draft: true
 
 # Introduction
 

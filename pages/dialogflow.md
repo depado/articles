@@ -206,7 +206,7 @@ as `df` in the Go code snippets.
 ## Setup
 
 We're going to use [gin](https://github.com/gin-gonic/gin)
-as our HTTP router, since it has some nice helper functions, is minimalist
+as our HTTP router, since it has some nice helper functions, it is minimalist
 and blazing fast. 
 
 Let's start by a simple Gin router that has a single route.
@@ -230,7 +230,7 @@ Your server will be listening on `127.0.0.1:8001` so simply execute the
 following command to start ngrok :
 
 ```sh
-$ ngrok http 8080
+$ ngrok http 8001
 ```
 
 Then check the `Forwarding` line, copy the URL that ngrok gave you and go to 
