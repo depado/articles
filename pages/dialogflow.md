@@ -49,8 +49,8 @@ How great is that ?
 
 ## Integrations
 
-As stated earlier, DialogFlow supports a wide range of integrations which means
-it knows how to communicate with various services such as Facebook Messenger,
+As stated earlier, DialogFlow supports a wide range of integrations, it knows 
+how to communicate with various services such as Facebook Messenger,
 Actions on Google, Skype, etc. Which means your agent will work with every one
 of these platforms if you setup the integrations properly. 
 
@@ -58,7 +58,7 @@ of these platforms if you setup the integrations properly.
 
 Now that we know what DialogFlow can do, one may ask "How do I create a useful
 chatbot with some complex actions ?". Well that's where the webhook is handy.
-Indeed everytime DialogFlow matches an intent, you have the possibility to
+Indeed, every time DialogFlow matches an intent, you have the possibility to
 ask DialogFlow to send a request to a specific endpoint. Endpoint which you'll
 obviously have to code. 
 
