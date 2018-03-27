@@ -24,7 +24,7 @@ you should do when starting a Go project.
 
 # TL;DR
 
-- [Choose a license !](https://choosealicense.com/)
+- [Choose a license!](https://choosealicense.com/)
 - Use [cobra](https://github.com/spf13/cobra) and [viper](https://github.com/spf13/viper) for conf and command management
 - Add a way to configure the logger
 - Inject build number and version in your compiled binaries
@@ -35,12 +35,12 @@ you should do when starting a Go project.
 ## License
 
 First of all, when you start a [FOSS](https://en.wikipedia.org/wiki/Free_and_open-source_software)
-project, **choose a license** ! Don't leave your repository with no `LICENSE`,
-otherwise, by default, your repository is considered copyrighted. Which means :
+project, **choose a license**! Don't leave your repository with no `LICENSE`,
+otherwise, by default, your repository is considered copyrighted. Which means:
 Literally nobody can use what you crafted.
 
 As said on the excellent [choosealicense.com](https://choosealicense.com/) on
-[this page](https://choosealicense.com/no-permission/) :
+[this page](https://choosealicense.com/no-permission/):
 
 > When you make a creative work (which includes code), the work is under
 > exclusive copyright by default. Unless you include a license that specifies
@@ -48,10 +48,10 @@ As said on the excellent [choosealicense.com](https://choosealicense.com/) on
 > being at risk of take-downs, shake-downs, or litigation. Once the work has
 > other contributors (each a copyright holder), “nobody” starts including you.
 
-So, spread the love of FOSS, and [choose a license](https://choosealicense.com/) !
+So, spread the love of FOSS, and [choose a license](https://choosealicense.com/)!
 
 And once you're starting to have dependencies to your project, remember to check
-their dependencies too ! Some tools do that nicely, such as
+their dependencies too! Some tools do that nicely, such as
 [glice](https://github.com/ribice/glice) which will list all your dependencies
 and their associated licenses.
 
@@ -132,14 +132,14 @@ can be tightly integrated with viper.
 
 Cobra allows us to split our program's behavior in multiple commands, and thus
 allows us to have different flags and configuration options for the different
-commands. Have a look at how smallblog achieves this :
+commands. Have a look at how smallblog achieves this:
 
 We first define our `Root` command
 [like this](https://github.com/Depado/smallblog/blob/master/cmd/root.go).
 It contains `PersistentFlags`, which are special flags that are
 also passed to other commands and subcommands. Basically it's the global
 configuration of your application. At the end of the `init()` function
-we're doing this :
+we're doing this:
 
 ```go
 // Flag binding
@@ -162,27 +162,27 @@ code for the `serve` command in smallblog](https://github.com/Depado/smallblog/b
 Here we define the flags that are specific to the `serve` command. We also bind
 those to viper. And now, when the `serve` command is executed, viper will parse
 the root and serve command flags and then read those in the
-environment and in the configuration file ! It's as simple as that !
+environment and in the configuration file! It's as simple as that!
 
 ## Logger setup
 
 In every application you need to be able to setup your logger properly. In most
 of my applications I'm using [logrus](https://github.com/sirupsen/logrus). Now
 as you may have seen in the previous section, I usually define three flags
-(three configuration values) which are : level, format and line.
+(three configuration values) which are: level, format and line.
 
 Level is the minimum level from which your logger should log. If you set
 it to "warning" or "warn", then no log under this level will be displayed,
 which means you won't get "info" and "debug" logs.
 
-Format is actually self-explanatory. Logrus supports two formats : text and
+Format is actually self-explanatory. Logrus supports two formats: text and
 json. Both are useful; text is easy to read, and json is easy to parse.
 
 And finally line. When this flag is active (or its configuration value is set
 to true), then a hook is added to logrus which will also log as an extra field
 the name of the file and the line on which the log happened.
 
-Here's the code I'm using :
+Here's the code I'm using:
 
 ```go
 func setupLogger() {
@@ -210,7 +210,7 @@ func setupLogger() {
 
 When building a Go program you can inject variables at compile time. A good
 thing to do is to inject a build number and a version number. To store them
-and display them on startup, we're going to do something like this :
+and display them on startup, we're going to do something like this:
 
 ```go
 package main
@@ -233,7 +233,7 @@ func main() {
 ```
 
 The build will be associated with our most recent commit sha1, and the version
-will be an arbitrary value. We'll create a Makefile to handle both of these :
+will be an arbitrary value. We'll create a Makefile to handle both of these:
 
 ```makefile
 .PHONY: all clean
@@ -255,7 +255,7 @@ clean:
 ```
 
 That's it. Now if you `make`, your build number and version will be injected
-in your binary. You can even create a new Cobra command to display those !
+in your binary. You can even create a new Cobra command to display those!
 
 ## Minimalist Dockerfile
 
@@ -301,7 +301,7 @@ EXPOSE 8080
 
 Multiple things happen here. First we're using [multi-stage builds](https://docs.docker.com/develop/develop-images/multistage-build/)
 to separate the build of our program and the execution. So we're building
-our binary in a step called `build` (as defined on this line :
+our binary in a step called `build` (as defined on this line:
 `FROM golang:1.10 AS build`). We parse the `build` and `version` arguments
 as we defined those earlier, we'll get back to this later. We build the binary
 and place it at the root of our container.
@@ -311,7 +311,7 @@ our binary inside. Using alpine here guarantees that you have `ca-certificates`
 and `tzdata`.
 
 We can now either build it on the command line... or... use the Makefile we
-defined earlier !
+defined earlier!
 
 ```makefile
 
@@ -321,7 +321,7 @@ docker:
 		-f Dockerfile .
 ```
 
-And now all you have to do is to run `make docker` and that's it !
+And now all you have to do is to run `make docker` and that's it!
 
 # Thanks
 
