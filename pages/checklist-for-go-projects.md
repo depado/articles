@@ -27,6 +27,7 @@ you should do when starting a Go project.
 - [Choose a license!](https://choosealicense.com/)
 - Use [cobra](https://github.com/spf13/cobra) and [viper](https://github.com/spf13/viper) for conf and command management
 - Add a way to configure the logger
+- Use `dep`!
 - Inject build number and version in your compiled binaries
 - Have a minimalist Dockerfile
 
@@ -206,6 +207,19 @@ func setupLogger() {
 }
 ```
 
+## Dep
+
+I can not say that enough: For dependency management, the recommended way for
+now is to use [dep](https://github.com/golang/dep)!
+
+So just install dep:
+
+```
+go get -u github.com/golang/dep/cmd/dep
+```
+
+And `dep init` in your repository!
+
 ## Build Number and Version
 
 When building a Go program you can inject variables at compile time. A good
@@ -322,6 +336,13 @@ docker:
 ```
 
 And now all you have to do is to run `make docker` and that's it!
+
+# Example repository
+
+You can find a combination of all these practices in [this repository](https://github.com/Depado/articles/tree/master/code/gochecklist)
+
+Since it's a just a directory in my articles repository there is no associated
+license.
 
 # Thanks
 
