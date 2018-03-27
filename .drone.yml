@@ -9,6 +9,8 @@ pipeline:
     script:
       - rm -r /home/depado/smallblog/pages/*
       - echo world
+    when:
+      event: push
 
   deploy:
     image: appleboy/drone-scp
