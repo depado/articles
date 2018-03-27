@@ -49,6 +49,11 @@ As said on the excellent [choosealicense.com](https://choosealicense.com/) on
 
 So, spread the love of FOSS, and [choose a license](https://choosealicense.com/) !
 
+And once you're starting to have dependencies to your project, remember to check
+their dependencies too ! Some tools do that nicely, such as 
+[glice](https://github.com/ribice/glice) which will list all your dependencies
+and their associated licenses.
+
 ## Flexible Configuration
 
 ![viper](/assets/go-checklist/viper.png)
