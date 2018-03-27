@@ -3,7 +3,7 @@ description: "I always forget stuff."
 banner: "/assets/go-checklist/banner.png"
 author: ""
 slug: checklist-for-go-projects
-tags: 
+tags:
 - go
 - dev
 - foss
@@ -13,13 +13,13 @@ draft: false
 # Introduction
 
 I start new Go projects regularly, either as part of my daily work or for fun
-on my free time. And every time I forget something ! Every time I forget about 
-the configurable logger, the Makefile which injects the build number, the 
+during my free time. And every time I forget something! Every time I forget about
+the configurable logger, the Makefile which injects the build number, the
 Dockerfile or a way to configure the project using environment variables.
 
 And that's bad. Because I often realize I forgot something right when I need it.
 
-So here is an article. It will be quite short I think, but will list everything
+So here is an article. It will be quite short, I think, but will list everything
 you should do when starting a Go project.
 
 # TL;DR
@@ -34,24 +34,24 @@ you should do when starting a Go project.
 
 ## License
 
-First of all, when you start a [FOSS](https://en.wikipedia.org/wiki/Free_and_open-source_software) 
-project, **choose a license** ! Don't leave your repository with no `LICENSE`, 
-otherwise, by default, your repository is considered copyrighted. Which means : 
+First of all, when you start a [FOSS](https://en.wikipedia.org/wiki/Free_and_open-source_software)
+project, **choose a license** ! Don't leave your repository with no `LICENSE`,
+otherwise, by default, your repository is considered copyrighted. Which means :
 Literally nobody can use what you crafted.
 
-As said on the excellent [choosealicense.com](https://choosealicense.com/) on 
+As said on the excellent [choosealicense.com](https://choosealicense.com/) on
 [this page](https://choosealicense.com/no-permission/) :
 
-> When you make a creative work (which includes code), the work is under 
-> exclusive copyright by default. Unless you include a license that specifies 
+> When you make a creative work (which includes code), the work is under
+> exclusive copyright by default. Unless you include a license that specifies
 > otherwise, nobody else can use, copy, distribute, or modify your work without
-> being at risk of take-downs, shake-downs, or litigation. Once the work has 
+> being at risk of take-downs, shake-downs, or litigation. Once the work has
 > other contributors (each a copyright holder), “nobody” starts including you.
 
 So, spread the love of FOSS, and [choose a license](https://choosealicense.com/) !
 
 And once you're starting to have dependencies to your project, remember to check
-their dependencies too ! Some tools do that nicely, such as 
+their dependencies too ! Some tools do that nicely, such as
 [glice](https://github.com/ribice/glice) which will list all your dependencies
 and their associated licenses.
 
@@ -65,10 +65,10 @@ I also had some flags defined in my `main.go` file. That did the trick.
 
 Then I started working with [Kubernetes](https://kubernetes.io/) and although
 it is simple to have a configuration file mounted in a volume, it's easier to
-work with environment variables. 
+work with environment variables.
 
 So I wrote [conftags](https://github.com/Depado/conftags), which works fine
-but I knew there was a better way to deal with that. So I had a look at 
+but I knew there was a better way to deal with that. So I had a look at
 [viper](https://github.com/spf13/viper).
 
 ```go
@@ -85,14 +85,14 @@ func init() {
     pflag.String("server.host", "127.0.0.1", "host on which the server should listen")
     pflag.Int("server.port", 8080, "port on which the server should listen")
     pflag.Bool("server.debug", false, "debug mode for the server")
-    
+
     if err := viper.BindPFlags(pflag.CommandLine); err != nil {
         logrus.WithError(err).Fatal("Couldn't bind flags")
     }
-    
+
     // Environment variables
     viper.AutomaticEnv()
-    
+
     // Configuration file
     viper.SetConfigName("conf")
     viper.AddConfigPath(".")
@@ -100,44 +100,43 @@ func init() {
     if err := viper.ReadInConfig(); err != nil {
         logrus.WithError(err).Warning("Couldn't read configuration file")
     }
-    
+
     // Defaults
     viper.SetDefault("server.host", "127.0.0.1")
     viper.SetDefault("server.port", 8080)
-    
+
     // Parsing flags
     pflag.Parse()
 }
 ```
 
-This simple snippet will do so many things. First you will be able to customize
-all your configuration with flags, environment variable and configuration file.
+This short code snippet does quite a few things. First you will be able to customize
+all your configuration with flags, environment variables and a configuration file.
 It also sets defaults and will generate a help text with the `-h,--help` flag.
 
-If no configuration file is found, a warning is logged but we won't stop the
-program. After all, there are defaults, flags and environment variables, the
-user might want to setup the whole program without configuration file.
+If no configuration file is found, a warning is logged but the program won't be stopped. After all, there are defaults, flags and environment variables; the
+user might want to setup the whole program without a configuration file.
 
 ## Commands
 
 ![cobra](/assets/go-checklist/cobra.png)
 
-This is actually not mandatory since it highly depends on how you program is
+This is actually not mandatory since it highly depends on how your program is
 intended to work. But you might want to have multiple commands and subcommands
 in your program. For example [smallblog](https://github.com/Depado/smallblog)
 uses at least two commands for now, which are `serve` and `new`. To achieve
 this I'm using the [cobra](https://github.com/spf13/cobra) library which
-can be tightly integrated with viper. 
+can be tightly integrated with viper.
 
 ### Root command
 
 Cobra allows us to split our program's behavior in multiple commands, and thus
 allows us to have different flags and configuration options for the different
-commands. Have a look at how smallblog achieves this : 
+commands. Have a look at how smallblog achieves this :
 
-We first define our `Root` command 
+We first define our `Root` command
 [like this](https://github.com/Depado/smallblog/blob/master/cmd/root.go).
-It contains what's called `PersistentFlags`, which are special flags that are
+It contains `PersistentFlags`, which are special flags that are
 also passed to other commands and subcommands. Basically it's the global
 configuration of your application. At the end of the `init()` function
 we're doing this :
@@ -149,11 +148,11 @@ viper.BindPFlags(rootCmd.PersistentFlags())
 
 We're telling viper to bind those persistent flags so we can access them through
 viper in the rest of our program. Once everything is initialized, the function
-we defined at the top of our `init()` function 
+we defined at the top of our `init()` function
 (`cobra.OnInitialize(initialize)`) will be executed.
 
-In this function we're telling viper to parse the configuration file, setup
-the environment variables, etc. We also setup the logger which we'll see in the
+In this function we're telling viper to parse the configuration file, set up
+the environment variables, etc. We also set up the logger which we'll see in the
 next section.
 
 ### Commands
@@ -162,7 +161,7 @@ We then proceed to define each individual command. For example, [here is the
 code for the `serve` command in smallblog](https://github.com/Depado/smallblog/blob/master/cmd/serve.go).
 Here we define the flags that are specific to the `serve` command. We also bind
 those to viper. And now, when the `serve` command is executed, viper will parse
-the root command flags, the serve command flags, and then read those in the 
+the root and serve command flags and then read those in the
 environment and in the configuration file ! It's as simple as that !
 
 ## Logger setup
@@ -170,17 +169,17 @@ environment and in the configuration file ! It's as simple as that !
 In every application you need to be able to setup your logger properly. In most
 of my applications I'm using [logrus](https://github.com/sirupsen/logrus). Now
 as you may have seen in the previous section, I usually define three flags
-(three configuration values) which are : Level, Format and Line.
+(three configuration values) which are : level, format and line.
 
-The level is the minimum level from which your logger should log. If you set
+Level is the minimum level from which your logger should log. If you set
 it to "warning" or "warn", then no log under this level will be displayed,
 which means you won't get "info" and "debug" logs.
 
-The format is actually self-explicit. Logrus supports two formats : text and
-json. Both are useful, text is easy to read, and json is easy to parse.
+Format is actually self-explanatory. Logrus supports two formats : text and
+json. Both are useful; text is easy to read, and json is easy to parse.
 
 And finally line. When this flag is active (or its configuration value is set
-to true), then a hook is added to logrus which will also log as an extra field,
+to true), then a hook is added to logrus which will also log as an extra field
 the name of the file and the line on which the log happened.
 
 Here's the code I'm using :
@@ -210,8 +209,8 @@ func setupLogger() {
 ## Build Number and Version
 
 When building a Go program you can inject variables at compile time. A good
-thing to do, is to inject a build number and a version number. To store them
-and to display them on startup, we're going to do something like this :
+thing to do is to inject a build number and a version number. To store them
+and display them on startup, we're going to do something like this :
 
 ```go
 package main
@@ -228,7 +227,7 @@ var (
 
 func main() {
 	logrus.WithFields(logrus.Fields{
-        "version": Version, 
+        "version": Version,
         "build": Build,
     }).Info("Starting")
 ```
@@ -302,16 +301,16 @@ EXPOSE 8080
 
 Multiple things happen here. First we're using [multi-stage builds](https://docs.docker.com/develop/develop-images/multistage-build/)
 to separate the build of our program and the execution. So we're building
-our binary in a step called `build` (as defined on this line : 
+our binary in a step called `build` (as defined on this line :
 `FROM golang:1.10 AS build`). We parse the `build` and `version` arguments
 as we defined those earlier, we'll get back to this later. We build the binary
 and place it at the root of our container.
 
 We then run the second step, the one that will build a small container with
 our binary inside. Using alpine here guarantees that you have `ca-certificates`
-and `tzdata`. 
+and `tzdata`.
 
-We can now either build it on the command line... Or... Use the Makefile we 
+We can now either build it on the command line... or... use the Makefile we
 defined earlier !
 
 ```makefile
