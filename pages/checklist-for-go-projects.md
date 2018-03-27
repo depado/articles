@@ -34,9 +34,10 @@ you should do when starting a Go project.
 
 ## License
 
-First of all, when you start a FOSS project, **choose a license** ! Don't leave
-your repository with no `LICENSE`, otherwise, by default, your repository is
-considered copyrighted. Which means : Literally nobody can use what you did.
+First of all, when you start a [FOSS](https://en.wikipedia.org/wiki/Free_and_open-source_software) 
+project, **choose a license** ! Don't leave your repository with no `LICENSE`, 
+otherwise, by default, your repository is considered copyrighted. Which means : 
+Literally nobody can use what you crafted.
 
 As said on the excellent [choosealicense.com](https://choosealicense.com/) on 
 [this page](https://choosealicense.com/no-permission/) :
