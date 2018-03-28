@@ -1,7 +1,6 @@
 title: Closeable time ticker and multiple receivers in Go
 description: Tutorial on how to have a multiple receivers listening on a single time.Ticker
 slug: closable-time-ticker-and-multiple-receivers-in-go
-author: Depado
 date: 2015-07-15 14:47:00
 tags:
     - go

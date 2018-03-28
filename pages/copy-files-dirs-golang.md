@@ -1,7 +1,6 @@
 title: Copy files and directories in Go
 description: Because there is no built-in recursive directory copy in Go
 slug: copy-files-and-directories-in-go
-author: Depado
 date: 2016-09-29 14:00:00
 tags:
     - dev

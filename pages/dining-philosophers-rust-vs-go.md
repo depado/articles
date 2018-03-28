@@ -1,7 +1,6 @@
 title: "Dining Philosophers : Rust vs Go"
 description: A silly comparison between Rust and Go where nothing interesting happen.
 slug: dining-philosophers-rust-vs-go
-author: Depado
 date: 2015-08-19 18:54:00
 tags:
     - go

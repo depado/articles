@@ -1,7 +1,6 @@
 title: Some Go snippets I find useful
 description: Here are some tricks and best practices for you
 slug: some-go-snippet-i-find-useful
-author: Depado
 date: 2015-07-23 09:11:00
 tags:
     - go

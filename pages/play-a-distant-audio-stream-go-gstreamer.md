@@ -1,7 +1,6 @@
 title: Play a distant audio stream using Go and Gstreamer
 description: Sometimes I'm facing weird problems.
 slug: play-a-distant-audio-stream-go-gstreamer
-author: Depado
 date: 2015-07-15 21:21:00
 tags:
     - go

@@ -1,7 +1,6 @@
 title: Smallblog Documentation
 description: Because even though it's on Github, I'll write it here too.
 slug: smallblog-doc
-author: Depado
 date: 2016-05-08 16:31:00
 tags:
     - setup

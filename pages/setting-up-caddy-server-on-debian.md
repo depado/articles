@@ -1,7 +1,6 @@
 title: Setting up Caddy Server on Debian
 description: When there was a lack of documentation. I guess this is quite outdated now.
 slug: setting-up-caddy-server-on-debian
-author: Depado
 date: 2015-12-07 09:25:00
 tags:
     - dev

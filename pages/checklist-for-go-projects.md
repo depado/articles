@@ -1,7 +1,6 @@
 title: Checklist for Go projects
 description: "I always forget stuff."
 banner: "/assets/go-checklist/banner.png"
-author: ""
 slug: checklist-for-go-projects
 tags:
 - go

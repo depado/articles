@@ -1,7 +1,6 @@
 title: "Small Example : How to use the scrape library in Go"
 description: A short tutorial on how to use the scrape library in Go.
 slug: how-to-use-scrape-library-in-go
-author: Depado
 date: 2015-08-07 11:21:00
 tags:
     - go

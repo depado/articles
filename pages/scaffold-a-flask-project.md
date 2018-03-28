@@ -1,7 +1,6 @@
 title: Scaffold a Flask Project
 description: Let's build a command-line utility for quickly generating a Flask boilerplate structure.
 slug: scaffold-a-flask-project
-author: Depado
 date: 2015-04-08 20:00:00
 tags:
     - dev

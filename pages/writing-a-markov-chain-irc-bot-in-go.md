@@ -1,7 +1,6 @@
 title: Writing a markov-chain IRC bot in Go
 description: A way to make your IRC bot awesome.
 slug: writing-a-markov-chain-irc-bot-in-go
-author: Depado
 date: 2015-10-10 14:42:00
 tags:
     - dev

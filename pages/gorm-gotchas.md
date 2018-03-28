@@ -3,7 +3,6 @@ description: |
     Gorm is an amazing ORM for the Go programming language, but its
     documentation sometimes lack of explanation or tutorials.
 slug: gorm-gotchas
-author: Depado
 date: 2017-12-20 12:00:00
 tags:
     - go

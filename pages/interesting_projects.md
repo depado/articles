@@ -1,7 +1,6 @@
 title: Interesting Projects
 description: Some projects/libs that I need to investigate or test
 slug: interesting-projects
-author: Depado
 date: 2017-06-12 10:30:00
 tags:
     - go

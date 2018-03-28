@@ -1,7 +1,6 @@
 title: Embedding resources with rice.go in a Gin project
 description: Because sometimes you want to package your resources within your binary.
 slug: embedding-resources-with-gin
-author: Depado
 date: 2016-01-29 21:15:00
 tags:
     - dev

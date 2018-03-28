@@ -1,7 +1,6 @@
 title: Buffer-less Multipart POST in Golang
 description: It's not as easy as it looks.
 slug: bufferless-multipart-post-in-go
-author: Depado
 date: 2016-01-09 23:51:00
 tags:
     - dev

@@ -1,7 +1,6 @@
 title: Cheap Open-Source Stack
 description: Because cheap doesn't mean it's not perfect for you
 slug: cheap-open-source-stack
-author: Depado
 date: 2017-08-18 18:00:00
 tags:
     - inspiration

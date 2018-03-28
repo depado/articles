@@ -1,7 +1,6 @@
 title: Handle Dynamic Subdomains with Flask and Nginx
 description: A short tutorial on how to achieve a per-user subdomain
 slug: handle-dynamic-subdomains-flask-nginx
-author: Depado
 date: 2015-06-17 10:36:00
 tags:
     - dev

@@ -1,7 +1,6 @@
 title: Execute a function periodically using a wrapper in Python
 description: Not much to say here, just a snippet to share.
 slug: execute-a-periodic-function-in-python
-author: Depado
 date: 2015-09-04 10:08:00
 tags:
     - python

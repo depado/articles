@@ -1,7 +1,6 @@
 title: Cuite Playlists
 description: Music is love
 slug: cuite
-author: Depado
 date: 2017-03-07 16:30:00
 tags:
     - music

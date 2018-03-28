@@ -1,7 +1,6 @@
 title: Rendering the TOC with Blackfriday
 description: Because that's a nice feature to have in your markdown renderer.
 slug: render-toc-with-blackfriday
-author: Depado
 date: 2016-07-19 20:17:00
 tags:
     - go
