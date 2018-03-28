@@ -348,3 +348,5 @@ license.
 
 Thanks to [@ashleymcnamara](https://github.com/ashleymcnamara) for the amazing
 [Gopher Artworks](https://github.com/ashleymcnamara/gophers).
+And thanks to [@shirley_leu](https://twitter.com/shirley_leu) for proofreading
+this article and correcting my dumb english mistakes !
