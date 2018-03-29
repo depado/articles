@@ -3,9 +3,7 @@ description: "A full and comprehensive guide on DialogFlow: how to use it and ho
 slug: dialogflow-golang-webhook
 banner: "/assets/dialogflow/banner.png"
 date: 2018-03-12 09:30:00
-tags:
-    - go
-    - dev
+tags: [go,dev,nlp,dialogflow]
 
 # Introduction
 
@@ -567,4 +565,6 @@ well as a DialogFlow agent in `zip` form which you will be able to import.
 # Thanks
 
 Thanks to [@ashleymcnamara](https://github.com/ashleymcnamara) for the amazing
-[Gopher Artworks](https://github.com/ashleymcnamara/gophers).
+[Gopher Artworks](https://github.com/ashleymcnamara/gophers).  
+And thanks to [@shirley_leu](https://twitter.com/shirley_leu) for proofreading
+this article and correcting my dumb english mistakes !
