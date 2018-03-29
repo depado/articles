@@ -1,5 +1,5 @@
 title: "DialogFlow : A complete guide with webhook"
-description: A full and comprehensive guide on DialogFlow: how to use it and how to integrate your logic in your chatbot.
+description: "A full and comprehensive guide on DialogFlow: how to use it and how to integrate your logic in your chatbot."
 slug: dialogflow-golang-webhook
 banner: "/assets/dialogflow/banner.png"
 date: 2018-03-12 09:30:00
