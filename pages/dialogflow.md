@@ -320,8 +320,7 @@ func random(c *gin.Context, dfr *df.Request) {
 
 ## Getting a random cocktail
 
-The subject here isn't how to create an API client. So I created one here :
-[github.com/Depado/articles/code/dialogflow/cocktail](https://github.com/Depado/articles/tree/master/code/dialogflow/cocktail).
+The subject here isn't how to create an API client. [So I created one](https://github.com/Depado/articles/tree/master/code/dialogflow/cocktail).
 
 We'll use that package when our `random(*gin.Context, *df.Request)` function
 is called. We don't need to retrieve parameters or contexts here; it's just
