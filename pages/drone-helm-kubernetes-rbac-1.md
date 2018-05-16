@@ -4,7 +4,7 @@ banner: "/assets/kube-drone-helm/banner.png"
 slug: ci-cd-with-drone-kubernetes-and-helm-1
 tags: ["ci-cd", "drone", "helm", "kubernetes", "rbac"]
 date: "2018-05-16 10:31:27"
-draft: true
+draft: false
 
 # Introduction
 
@@ -312,3 +312,15 @@ That's it. We're ready. Let's fire up Helm !
 ```
 $ helm install --name mydrone -f values.yml incubator/drone
 ```
+
+Given that your DNS record is now propagated, you should be able to access your
+drone instance using the `drone.myhost.io` URL !
+
+# Conclusion
+
+In this part we saw how to deploy a Kubernetes cluster on GKE, how to create
+a service account with the proper cluster role binding to deploy Tiller, how
+to use helm and how to deploy a chart with the example of drone.
+
+In the next part we'll see how to write a quality pipeline for a Go project as
+well as how to push to Google Cloud Registry. 
