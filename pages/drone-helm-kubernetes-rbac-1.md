@@ -324,3 +324,8 @@ to use helm and how to deploy a chart with the example of drone.
 
 In the next article we'll see how to write a quality pipeline for a Go project as
 well as how to push to Google Cloud Registry.
+
+# Thanks
+
+Thanks to [@shirley_leu](https://twitter.com/shirley_leu) for proofreading
+this article and correcting my english mistakes !
