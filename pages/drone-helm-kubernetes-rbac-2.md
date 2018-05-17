@@ -18,11 +18,9 @@ to the different event that can be handled by Drone.
 
 # Go Project
 
-## TL;DR
-
-You can find the code and the various files [here](https://github.com/Depado/articles/tree/master/code/dummy/).
-
 ## Simple Project
+
+**TL;DR:** You can find the code and the various files [here](https://github.com/Depado/articles/tree/master/code/dummy/).
 
 We're going to work on a dummy go project. So just create a new repository in
 your VCS, clone it and create a new file named `main.go` in it:
@@ -164,14 +162,64 @@ is simply to build and check if our project builds.
 Now things are getting serious. In this section we are going to start using
 Drone secrets. So you need to make sure that you 
 [installed the `drone` CLI](http://docs.drone.io/cli-installation/), and that 
-you [configured it correctly](http://docs.drone.io/cli-authentication/).
-
+you [configured it correctly](http://docs.drone.io/cli-authentication/). 
 You can check if that worked properly by running:
 
 ```
 $ drone info
 User: you
 Email: you@yourmail.com
+```
+
+[Google Container Registry](https://cloud.google.com/container-registry/) is a
+private Docker registry which we're going to use to host our tagged Docker
+images for our future deployments. As it's private, we're going to need to
+authenticate and we can achieve this by creating what's called a service
+account. But this one won't be inside our k8s cluster, but will grant some
+authorization.
+
+So let's head to the [IAM Console](https://console.cloud.google.com/iam-admin/serviceaccounts)
+and create a new service account. Name it as you like and select the 
+"Storage Admin" role, check the box to generate a new JSON key and hit "Save".
+You'll be offered to download the JSON key, download and save it on your
+computer. 
+
+![new-sa](/assets/kube-drone-helm/new-sa.png)
+
+We're going to use our first Drone plugin, namely the 
+[Google Container Registry](http://plugins.drone.io/drone-plugins/drone-gcr/).
+There's some explanation on this page on how to use this plugin, and it's
+written that this plugin is actually an extension of the 
+[Docker](http://plugins.drone.io/drone-plugins/drone-docker/) plugin.
+
+So let's add this step to our `.drone.yml` file:
+
+```yaml
+  gcr:
+    image: plugins/gcr
+    repo: project-id/dummy
+    tags: latest
+    secrets: [google_credentials]
+    when:
+      event: push
+      branch: master
+```
+
+Obviously you need to replace the `project-id` with your own project ID. Here's
+what Drone understands at this step:
+
+> If a commit is pushed on the master branch, then build the Docker image, tag 
+> it with `latest` and push it to GCR using the credentials defined in the 
+> `google_credentials` secret.
+
+We're missing something here. The `google_credentials` secret is yet to be
+created. So in your terminal, we'll use the `drone` CLI to create a new
+secret for our repository, and we'll limit this secret to be used only by
+the `plugins/gcr` image:
+
+```
+$ drone secret add --image plugins/gcr --repository Depado/dummy \
+  --name google_credentials --value @your_key.json
 ```
 
 # Helm Chart
