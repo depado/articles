@@ -28,6 +28,7 @@ func init() {
 	cobra.OnInitialize(initialize)
 
 	// Global flags
+	rootCmd.PersistentFlags().String("conf", "", "path to the configuration file")
 	rootCmd.PersistentFlags().String("log.level", "info", "one of debug, info, warn, error or fatal")
 	rootCmd.PersistentFlags().String("log.format", "text", "one of text or json")
 	rootCmd.PersistentFlags().Bool("log.line", false, "enable filename and line in logs")
@@ -40,10 +41,15 @@ func initialize() {
 	// Environment variables
 	viper.AutomaticEnv()
 
+	if viper.GetString("conf") != "" {
+		viper.SetConfigFile(viper.GetString("conf"))
+	} else {
+		viper.SetConfigName("conf")
+		viper.AddConfigPath(".")
+		viper.AddConfigPath("/config/")
+	}
+
 	// Configuration file
-	viper.SetConfigName("conf")
-	viper.AddConfigPath(".")
-	viper.AddConfigPath("/config/")
 	if err := viper.ReadInConfig(); err != nil {
 		logrus.Warn("No configuration file found")
 	}
