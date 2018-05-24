@@ -30,6 +30,7 @@ entirely skip it if you have a running k8s cluster and a running Drone instance.
 - Initialize Helm
 - Add a repo to Helm
 - Deploy Drone on the new k8s cluster
+- Enable HTTPS on our new Drone instance
 
 ## Technology involved
 
@@ -96,11 +97,6 @@ In this tutorial, we'll use [Google Cloud Platform](https://cloud.google.com)
 because it allows to create Kubernetes clusters easily and has a private
 container registry which we'll use later.
 
-Also we're not going to handle TLS on our Drone deployment. That's because the
-technology I used to handle TLS certificates using Let's Encrypt,
-[kube-lego](https://github.com/jetstack/kube-lego), is now deprecated in favor
-of [cert-manager](https://github.com/jetstack/cert-manager/).
-
 # Kubernetes Cluster
 
 <img src="/assets/kube-drone-helm/kube.png" style="max-height: 100px;" />
@@ -133,8 +129,8 @@ command:
 
 ```
 $ gcloud container clusters list
-NAME       MASTER_VERSION  MACHINE_TYPE   NODE_VERSION  NUM_NODES  STATUS
-mycluster  1.9.7-gke.0     custom-1-2048  1.9.7-gke.0   3          RUNNING
+NAME       LOCATION        MASTER_VERSION  MASTER_IP    MACHINE_TYPE   NODE_VERSION  NUM_NODES  STATUS
+mycluster  europe-west1-b  1.10.2-gke.1    <master ip>  custom-1-2048  1.10.2-gke.1  3          RUNNING
 ```
 
 You should also get the `MASTER_IP`, `PROJECT`, and the `LOCATION` which I removed
@@ -149,17 +145,18 @@ retrieve the credentials to connect to your cluster:
 $ gcloud container clusters get-credentials $NAME --zone $LOCATION --project $PROJECT
 Fetching cluster endpoint and auth data.
 kubeconfig entry generated for mycluster.
-```
-
-That's it. Your cluster is created, and `kubectl` can now be used to operate
-on your cluster. To check it out:
-
-```
 $ kubectl cluster-info
+Kubernetes master is running at https://<master ip>
+GLBCDefaultBackend is running at https://<master ip>/api/v1/namespaces/kube-system/services/default-http-backend/proxy
+Heapster is running at https://<master ip>/api/v1/namespaces/kube-system/services/heapster/proxy
+KubeDNS is running at https://<master ip>/api/v1/namespaces/kube-system/services/kube-dns/proxy
+kubernetes-dashboard is running at https://<master ip>/api/v1/namespaces/kube-system/services/kubernetes-dashboard/proxy
+Metrics-server is running at https://<master ip>/api/v1/namespaces/kube-system/services/metrics-server/proxy
 ```
 
-This will print out all the information you need to know about where your cluster
-is located.
+Now `kubectl` is configured to operate on your cluster. The last command will 
+print out all the information you need to know about where your cluster is 
+located.
 
 # Helm and Tiller
 
@@ -211,6 +208,8 @@ Now we can deploy tiller using the service account we just created like this:
 ```
 $ helm init --service-account tiller
 ```
+
+![tiller-service](/assets/kube-drone-helm/tiller-service.png)
 
 Note that it's not necessarily good practice to deploy tiller this way. Using
 RBAC, we can limit the actions Tiller can execute in our cluster and the
@@ -269,11 +268,10 @@ $ helm repo update
 ```
 
 Now that it's done, we can have a look at the [configuration](https://github.com/kubernetes/charts/tree/master/incubator/drone#configuration)
-part for this Chart. We'll create a `values.yml` file that will contain the
+part for this Chart. We'll create a `values.yaml` file that will contain the
 required information for our Drone instance to work properly.
 
 ```yaml
----
 service:
   httpPort: 80
   nodePort: 32015
@@ -310,11 +308,209 @@ VCS, in this case Github.
 That's it. We're ready. Let's fire up Helm!
 
 ```
-$ helm install --name mydrone -f values.yml incubator/drone
+$ helm install --name mydrone -f values.yaml incubator/drone
 ```
 
 Given that your DNS record is now propagated, you should be able to access your
 Drone instance using the `drone.myhost.io` URL!
+
+# TLS
+
+## Deploying cert-manager
+
+In the past, we had [kube-lego](https://github.com/jetstack/kube-lego) which
+is now deprecated in favor of [cert-manager](https://github.com/jetstack/cert-manager/).
+
+[The documentation](http://cert-manager.readthedocs.io/en/latest/getting-started/2-installing.html)
+states that installing cert-manager is as easy as running this command:
+
+```
+$ helm install --name cert-manager --namespace kube-system stable/cert-manager
+```
+
+## Creating an ACME Issuer
+
+Cert-manager is composed of several components. It uses what's called [Custom Resource Definitions](https://kubernetes.io/docs/tasks/access-kubernetes-api/extend-api-custom-resource-definitions/)
+and allows to use `kubectl` to control the certificates, issuers and so on.
+
+An [Issuer](https://cert-manager.readthedocs.io/en/latest/reference/issuers.html) 
+or [ClusterIssuer](https://cert-manager.readthedocs.io/en/latest/reference/clusterissuers.html) 
+represents a certificate authority from which x509 certificates can be obtained.
+
+The difference between an Issuer and a ClusterIssuer is that the Issuer can only
+manage certificates in its own namespace and be called from within that 
+namespace. The ClusterIssuer doesn't depend on a specific namespace.
+
+We're going to create a Let'sEncrypt ClusterIssuer so we can issue a certificate
+for our Drone instance and for our future deployments. Let's create a file named
+`acme-issuer.yaml`:
+
+```yaml
+apiVersion: certmanager.k8s.io/v1alpha1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt
+spec:
+  acme:
+    server: https://acme-v01.api.letsencrypt.org/directory
+    email: your.email.address@gmail.com
+    privateKeySecretRef:
+      name: letsencrypt-production
+    http01: {}
+```
+
+Here we're creating the ClusterIssuer with the HTTP challenge enabled. We're
+only going to see this challenge in this article, refer to the 
+[documentation](https://cert-manager.readthedocs.io/en/latest/) for more
+information about challenges. 
+**Remember to change the associated email address in your issuer !**
+
+```
+$ kubectl apply -f acme-issuer.yaml
+```
+
+We can also create a ClusterIssuer using Let'sEncrypt staging environment which
+is more permissive with errors on requests. If you want to test out without
+issuing true certificates, use this one instead. Create a new file 
+`acme-staging-issuer.yaml`:
+
+```yaml
+apiVersion: certmanager.k8s.io/v1alpha1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-staging
+spec:
+  acme:
+    server: https://acme-staging.api.letsencrypt.org/directory
+    email: your.email.address@gmail.com
+    privateKeySecretRef:
+      name: letsencrypt-staging
+    http01: {}
+```
+
+```
+$ kubectl apply -f acme-staging-issuer.yaml
+```
+
+## Certificate
+
+Now that we have our ClusterIssuer that is using the production of Let'sEncrypt,
+we can create a manifest that will solve the ACME challenge for us. First we're
+going to need the name of the ingress created by the Drone chart:
+
+```
+$ kubectl get ingress
+NAME            HOSTS             ADDRESS       PORTS     AGE
+mydrone-drone   drone.myhost.io   xx.xx.xx.xx   80        1h
+```
+
+Now that we have this information, let's create the `drone-cert.yaml` file:
+
+```yaml
+apiVersion: certmanager.k8s.io/v1alpha1
+kind: Certificate
+metadata:
+  name: mydrone-drone
+  namespace: default
+spec:
+  secretName: mydrone-drone-tls
+  issuerRef:
+    name: letsencrypt # This is where you put the name of your issuer
+    kind: ClusterIssuer
+  commonName: drone.myhost.io # Used for SAN
+  dnsNames:
+  - drone.myhost.io
+  acme:
+    config:
+    - http01:
+        ingress: mydrone-drone # The name of your ingress
+      domains:
+      - drone.myhost.io
+```
+
+There are many fields to explain here. Most of them are pretty explicit and can
+be found [in the documentation](http://cert-manager.readthedocs.io/en/latest/tutorials/acme/http-validation.html)
+about HTTP validation.
+
+The important things here are:
+
+- `spec.secretName`: The secret in which the certificate will be stored. Usually
+  this will be prefixed with `-tls` so it doesn't get mixed up with other 
+  secrets.
+- `spec.issuerRef.name`: The named we defined earlier for our ClusterIssuer
+- `spec.issuerRef.kind`: Specify that the issuer is a ClusterIssuer
+- `spec.acme.config.http01.ingress`: The name of the ingress deployed with Drone
+
+Now let's apply this:
+
+```
+$ kubectl apply -f drone-cert.yaml
+$ kubectl get certificate
+NAME            AGE
+mydrone-drone   7m
+$ kubectl describe certificate mydrone-drone
+...
+Events:
+  Type     Reason                 Age              From                     Message
+  ----     ------                 ----             ----                     -------
+  Warning  ErrorCheckCertificate  33s              cert-manager-controller  Error checking existing TLS certificate: secret "mydrone-drone-tls" not found
+  Normal   PrepareCertificate     33s              cert-manager-controller  Preparing certificate with issuer
+  Normal   PresentChallenge       33s              cert-manager-controller  Presenting http-01 challenge for domain drone.myhost.io
+  Normal   SelfCheck              32s              cert-manager-controller  Performing self-check for domain drone.myhost.io
+  Normal   ObtainAuthorization    6s               cert-manager-controller  Obtained authorization for domain drone.myhost.io
+  Normal   IssueCertificate       6s               cert-manager-controller  Issuing certificate...
+  Normal   CertificateIssued      5s               cert-manager-controller  Certificate issued successfully
+```
+
+We need to wait for this last line to appear, the `CertificateIssued` event
+before we can update our Ingress' values. This can take some time, be patient
+as Google Cloud Load Balancers can take several minutes to update.
+
+## Upgrade Drone's Values
+
+Now that we have our secret containing the proper TLS certificate, we can go
+back to our `values.yaml` file we used earlier to deploy Drone with its Chart
+and add the TLS secret to the ingress section ! We're also going to disable
+HTTP on our ingress (only HTTPS will be served), and modify our `server.host`
+value to reflect this HTTPS change.
+
+```yaml
+service:
+  httpPort: 80
+  nodePort: 32015
+  type: NodePort
+ingress:
+  enabled: true
+  annotations:
+    kubernetes.io/ingress.class: "gce"
+    kubernetes.io/ingress.global-static-ip-name: "drone-kube"
+    kubernetes.io/ingress.allow-http: "false" # ← Let's disable HTTP and allow only HTTPS
+  hosts:
+    - drone.myhost.io
+  # Add this ↓
+  tls:
+    - hosts:
+      - drone.myhost.io
+      secretName: mydrone-drone-tls
+  # End
+server:
+  host: "https://drone.myhost.io" # ← Modify this too 
+  env:
+    DRONE_PROVIDER: "github"
+    DRONE_OPEN: "false"
+    DRONE_GITHUB: "true"
+    DRONE_ADMIN: "me"
+    DRONE_GITHUB_CLIENT: "the github client secret you created earlier"
+    DRONE_GITHUB_SECRET: "same thing with the secret"
+```
+
+And we just have to upgrade our deployment:
+
+```
+$ helm upgrade mydrone -f values.yaml incubator/drone
+```
+
+You're going to have to modify your Github application too. 
 
 # Conclusion
 
