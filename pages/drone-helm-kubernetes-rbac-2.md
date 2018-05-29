@@ -4,13 +4,14 @@ banner: "/assets/kube-drone-helm/banner.png"
 slug: ci-cd-with-drone-kubernetes-and-helm-2
 tags: ["ci-cd", "drone", "helm", "kubernetes", "rbac"]
 date: "2018-05-17 15:02:43"
-draft: true
+draft: false
 
 # Introduction
 
 This is the second part of the article series. In [the first part](/post/ci-cd-with-drone-kubernetes-and-helm-1)
 we saw how to start a Kubernetes cluster, how to deploy Tiller and use Helm with
-it, and we deployed a Drone instance. 
+it, and we deployed a Drone instance. We also enabled HTTPS using 
+[cert-manager](https://github.com/jetstack/cert-manager) for our Drone instance.
 
 In this article we'll see how to create a quality pipeline for a go project, how
 to build and push a docker image to Google Cloud Registry from our CI according
@@ -129,9 +130,7 @@ everything need to be deployed to a Kubernetes cluster.
 ## Basic Pipeline
 
 As stated in the previous article of the series, Drone works the same way as 
-Travis, which is: You create a `.drone.yml` file at the root of your repository.
-
-So let's do that:
+Travis, which is: You create a `.drone.yml` file at the root of your repository:
 
 ```yaml
 workspace:
@@ -157,7 +156,65 @@ first step is, using the `golang:latest` Docker image, display the go version,
 install `dep` and then install the dependencies. The second step of the pipeline 
 is simply to build and check if our project builds. 
 
-## Pushing to GCR
+## Linter
+
+In this section we're going to see two linters. The first one is 
+[gometalinter](https://github.com/alecthomas/gometalinter), it has been around
+for a long time now and is really stable. The second one is 
+[golangci-lint](https://github.com/golangci/golangci-lint) which is more recent
+but has some amazing performance compared to gometalinter. So pick your weapon,
+no need to use both of them !
+
+### gometalinter
+
+Simply put, gometalinter is a tool that has a whole bunch of linters vendored, 
+and that can run them concurrently and report any errors found by them. The full
+list of linters can be found [here](https://github.com/alecthomas/gometalinter#supported-linters).
+
+So let's add a step to our pipeline:
+
+```yaml
+  linter:
+    image: "golang:latest"
+    commands:
+      - go get -u github.com/alecthomas/gometalinter
+      - gometalinter --install --force
+      - gometalinter --disable=gotype --vendor --deadline=5m ./... 
+```
+
+We need to disable `gotype` since it has some issues with aliasing and vendoring
+and other stuff like that.
+
+### golangci-lint
+
+So basically golangci-lint is quite the same as gometalinter, except it's 
+[way faster](https://github.com/golangci/golangci-lint#performance). You can
+check out the [comparison between golangci-lint and gometalinter](https://github.com/golangci/golangci-lint#golangci-lint-vs-gometalinter).
+
+To add this linter to your pipeline, you can simply add this step to your 
+pipeline.
+
+```yaml
+  linter:
+    image: "golang:latest"
+    commands:
+      - go get -u github.com/golangci/golangci-lint/cmd/golangci-lint
+      - golangci-lint run
+```
+
+If you prefer, you can directly [vendor golangci-lint](https://github.com/golangci/golangci-lint#faq)
+in your repository to save a network call. 
+
+### Opinion
+
+Although I love gometalinter, since I found golangci-lint I can't really think
+of a single reason to go back to it. The output is better, the run time is way
+faster which is nice when you want your pipeline to complete quickly. So I'd
+personally go with golangci-lint and ditch gometalinter. 
+
+# Pushing to GCR
+
+## Setup
 
 Now things are getting serious. In this section we are going to start using
 Drone secrets. So you need to make sure that you 
@@ -175,8 +232,8 @@ Email: you@yourmail.com
 private Docker registry which we're going to use to host our tagged Docker
 images for our future deployments. As it's private, we're going to need to
 authenticate and we can achieve this by creating what's called a service
-account. But this one won't be inside our k8s cluster, but will grant some
-authorization.
+account. This service account won't be inside our k8s cluster though, and will
+be used to grant some authorization to our CI when it will use it. 
 
 So let's head to the [IAM Console](https://console.cloud.google.com/iam-admin/serviceaccounts)
 and create a new service account. Name it as you like and select the 
@@ -186,8 +243,10 @@ computer.
 
 ![new-sa](/assets/kube-drone-helm/new-sa.png)
 
+## Latest
+
 We're going to use our first Drone plugin, namely the 
-[Google Container Registry](http://plugins.drone.io/drone-plugins/drone-gcr/).
+[Google Container Registry plugin](http://plugins.drone.io/drone-plugins/drone-gcr/).
 There's some explanation on this page on how to use this plugin, and it's
 written that this plugin is actually an extension of the 
 [Docker](http://plugins.drone.io/drone-plugins/drone-docker/) plugin.
@@ -222,33 +281,93 @@ $ drone secret add --image plugins/gcr --repository Depado/dummy \
   --name google_credentials --value @your_key.json
 ```
 
-# Helm Chart
+Here we're adding a secret to our repository (`Depado/dummy`), with the name
+`google_credentials` and we're limiting the use of this secret to the 
+`plugins/gcr` image.
 
-## Creating the Chart
+Now we're going to commit our `.drone.yml` file and test it. If everything
+went fine, you should see your Docker image with the `latest` tag in GCR !
 
-In the previous article we learned how to use an Helm Chart. In this section
-we'll see how to create a basic chart that will simply create a deployment.
+## Release
 
-We won't bother about ingress, configmap and such because our goal here is
-simply to use Helm from within our CI environment.
+So now we can push our Docker image with the `latest` tag to our Google Cloud
+Registry. What about we also push the image when we tag a release on our Github
+? Drone can handle that, in case of the `tag` event, here's the additional step
+we're going to add to our `.drone.yml` file:
 
+```yaml
+  tagged_gcr:
+    image: plugins/gcr
+    repo: project-id/dummy
+    tags: 
+      - "${DRONE_TAG##v}"
+      - latest
+    secrets: [google_credentials]
+    when:
+      event: tag
+      branch: master
 ```
-$ helm create dummy
-Creating dummy
+
+Now only when we're going to tag a release will this step be triggered. Not only
+will it build the image just like the `gcr` step, but it will also add the 
+`${DRONE_TAG##v}` tag. That simply means that Drone will replace this value
+with the tag it detected and strip away the `v` if there's any. This means
+that you can tag your release `v1.0.1` and the tag will be `1.0.1`
+
+
+# Summary
+
+At this point, your `.drone.yml` should look somewhat like that:
+
+```yaml
+workspace:
+  base: /go
+  path: src/github.com/Depado/dummy
+
+pipeline:
+  prerequisites:
+    image: "golang:latest"
+    commands: 
+      - go version
+      - go get -u github.com/golang/dep/cmd/dep
+      - dep ensure -vendor-only
+
+  linter:
+    image: "golang:latest"
+    commands:
+      - go get -u github.com/golangci/golangci-lint/cmd/golangci-lint
+      - golangci-lint run
+
+  build:
+    image: "golang:latest"
+    commands:
+      - go build
+
+  gcr:
+    image: plugins/gcr
+    repo: project-id/dummy
+    tags: latest
+    secrets: [google_credentials]
+    when:
+      event: push
+      branch: master
+
+  tagged_gcr:
+    image: plugins/gcr
+    repo: project-id/dummy
+    tags: 
+      - "${DRONE_TAG##v}"
+      - latest
+    secrets: [google_credentials]
+    when:
+      event: tag
+      branch: master
 ```
 
-This will create a new directory `dummy` where you are. This directory
-will contain two directories and some files:
+Our Drone is now able to check if our code passes all the linters, checks if the
+project compiles, build the Docker image using our Dockerfile and push it to
+GCR according to the various events Drone can read. 
 
-- `charts/` A directory containing any charts upon which this chart depends
-- `templates/` A directory of templates that, when combined with values, will generate 
-  valid Kubernetes manifest files
-- `Charts.yaml` A YAML file containing information about the chart
-- `values.yaml` The default configuration values for this chart
-
-For more information, check [the documentation](https://github.com/kubernetes/helm/blob/master/docs/charts.md#the-chart-file-structure)
-about the chart file structure.
-
-Here, we're going to modify both the `values.yaml` files to use sane defaults
-for our chart, and more importantly `templates/` to add and modify the rendered
-k8s manifests.
+In the next part we'll see how to create a Helm Chart for our application. We
+already saw how to use a pre-made Chart, we will see how we can automate the 
+`helm upgrade` process !
