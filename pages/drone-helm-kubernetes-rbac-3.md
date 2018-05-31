@@ -6,17 +6,37 @@ tags: ["ci-cd", "drone", "helm", "kubernetes", "rbac"]
 date: "2018-05-29 18:10:00"
 draft: true
 
+# Introduction
+
+This is the third an final part of this article series. In [the first part](/post/ci-cd-with-drone-kubernetes-and-helm-1)
+we learned how to:
+
+- Start a Kubernetes cluster using [GKE](https://cloud.google.com/kubernetes-engine/)
+- Deploy Tiller and use Helm
+- Deploy a Drone instance using its Helm Chart
+- Enable HTTPS on our Drone instance using [cert-manager](https://github.com/jetstack/cert-manager) 
+
+In the [second part](/post/ci-cd-with-drone-kubernetes-and-helm-2) we created
+our first Drone pipeline for an example project, in which we ran a linter, 
+either [gometalinter](https://github.com/alecthomas/gometalinter) or 
+[golangci-lint](https://github.com/golangci/golangci-lint), built the Docker
+image and push it to [GCR](https://cloud.google.com/container-registry/) with
+appropriate tags according to the events of our VCS (push or tag).
+
+In this last article, we'll see how to create an Helm Chart, and how we can
+automate the upgrade/installation procedure directly from within our Drone 
+pipeline.
+
 # Helm Chart
 
 ## Creating the Chart
 
-In the previous article we learned how to use an Helm Chart. In this section
-we'll see how to create a basic chart that will simply create a deployment.
-
-We won't bother about ingress, configmap and such because our goal here is
-simply to use Helm from within our CI environment.
+Helm provides us with a nice set of helpers. So let's go in our 
+[dummy repo](https://github.com/Depado/dummy) and `create` our chart.
 
 ```
+$ mkir helm
+$ cd helm/
 $ helm create dummy
 Creating dummy
 ```

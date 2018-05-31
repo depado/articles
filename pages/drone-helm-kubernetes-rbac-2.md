@@ -21,7 +21,7 @@ to the different event that can be handled by Drone.
 
 ## Simple Project
 
-**TL;DR:** You can find the code and the various files [here](https://github.com/Depado/articles/tree/master/code/dummy/).
+**TL;DR:** You can find the code and the various files [here](https://github.com/Depado/dummy).
 
 We're going to work on a dummy go project. So just create a new repository in
 your VCS, clone it and create a new file named `main.go` in it:
