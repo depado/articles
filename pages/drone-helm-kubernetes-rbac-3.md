@@ -4,9 +4,11 @@ banner: "/assets/kube-drone-helm/banner.png"
 slug: ci-cd-with-drone-kubernetes-and-helm-3
 tags: ["ci-cd", "drone", "helm", "kubernetes", "rbac"]
 date: "2018-05-29 18:10:00"
-draft: true
+draft: false
 
 # Introduction
+
+![hello](/assets/kube-drone-helm/hello.gif)
 
 This is the third an final part of this article series. In [the first part](/post/ci-cd-with-drone-kubernetes-and-helm-1)
 we learned how to:
@@ -491,6 +493,9 @@ image we specify we want to recreate the pods using the `recreate_pods` option.
 That's it. Now every time we push to master, we're going to update our staging
 environment, given that all the tests pass. 
 
+![thumbs](/assets/kube-drone-helm/thumbs.gif)
+
+
 ## Production
 
 If you've learned things in this article series, you'll now understand what
@@ -549,9 +554,118 @@ production when you tag a new release on Github. It will build the Docker image,
 tag it with the given tag, the git commit's sha1, and the latest tag. It will
 then use helm to deploy said image (using the tag) to our cluster.
 
-
 # TLS
+
+![sweat](/assets/kube-drone-helm/sweat.gif)
+
+We need to be able to handle TLS for our application. For both environments,
+staging and prod. We are going to handle that quite like we did in the 
+[first part](/post/ci-cd-with-drone-kubernetes-and-helm-1#toc_13). So if you 
+don't have [cert-manager](https://github.com/jetstack/cert-manager/) installed
+in your cluster, and don't have the ACME Issuer, then head to this part.
 
 ## Certificate Manifest
 
-TODO
+Basically what we're going to do is we're going to templatize the certificate.
+And then we'll modify our Ingress manifest so it can take into account our TLS
+secret.
+
+Let's create a new file in our `dummy/templates/` directory, and name it 
+`certificate.yaml`:
+
+```yaml
+{{- if and .Values.ingress.enabled .Values.tls.enabled -}}
+apiVersion: certmanager.k8s.io/v1alpha1
+kind: Certificate
+metadata:
+  name: {{ template "dummy.fullname" . }}
+  labels:
+    app: {{ template "dummy.name" . }}
+    chart: {{ template "dummy.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+spec:
+  secretName: {{ template "dummy.fullname" . }}-tls
+  issuerRef:
+    name: {{ required "A valid .Values.tls.issuer.name entry required!" .Values.tls.issuerName }}
+    kind: ClusterIssuer
+  commonName: {{ required "A valid .Values.tls.commonName entry is required!" .Values.tls.commonName }}
+  dnsNames:
+  {{- range .Values.tls.dnsNames }}
+  - {{ . }}
+  {{- end }}
+  acme:
+    config:
+    - http01:
+        ingress: {{ template "dummy.fullname" . }}
+      domains:
+      {{- range .Values.tls.domains }}
+      - {{ . }}
+      {{- end }}
+{{- end -}}
+```
+
+We are now expecting a `tls` object in the provided values. So let's add it in
+our `values.yaml` so users know what values they can provide:
+
+```yaml
+tls:
+  apply: false
+  enabled: false
+  issuerName:
+  commonName:
+  dnsNames: []
+  domains: []
+```
+
+This also adds a `tls.apply` value, which we'll see later.
+
+Let's edit our `staging.yaml` user-provided values like so:
+
+```yaml
+tls:
+  apply: false
+  enabled: true
+  issuerName: letsencrypt
+  commonName: staging.dummy.myhost.io
+  dnsNames:
+  - staging.dummy.myhost.io
+  domains:
+  - staging.dummy.myhost.io
+```
+
+## Ingress Modification
+
+The `tls.apply` value has an important role to play here. This is a two-step
+deployment. First we're going to deploy (simply push to master if you will),
+with the `tls.apply` to false. This will trigger the deployment of our new
+Certificate, and just like we saw about TLS in the first part of this series, we
+will have to wait for the Certificate to create the appropriate secret. 
+
+Once the secret is created... Well, we'll have to tell our Ingress to use it.
+That's where the `tls.apply` value enters. Let's modify our 
+`dummy/templates/ingress.yaml` file:
+
+```yaml
+spec:
+{{- if .Values.tls.apply }}
+  tls:
+    - hosts:
+      {{- range .Values.tls.domains }}
+      - {{ . }}
+      {{- end }}
+      secretName: {{ template "dummy.fullname" . }}-tls
+{{- end }}
+  rules:
+    ...
+```
+
+Here we're declaring that if the `tls.apply` value is true, then we can use
+the named secret as the TLS certificate for this endpoint.
+
+And really that's it. We're done. First, deploy with the `tls.apply` to false
+and wait for your certificate to be created by using the 
+`kubectl describe certificate staging-dummy --namespace=staging` command. Once
+you see your certificate, simply deploy once more with `tls.apply` set to true.
+
+Wait for a bit. And tada, you have TLS !
