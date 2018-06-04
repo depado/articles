@@ -422,7 +422,7 @@ is base64 encoded data. And since we're kind with our Drone instance, we're
 going to decode it for him:
 
 ```
-echo "that very long token of yours" | base64 -w 0
+echo "that very long token of yours" | base64 -d -w 0
 ```
 
 Store this somewhere, we'll explain later where we're going to use it. Also,
