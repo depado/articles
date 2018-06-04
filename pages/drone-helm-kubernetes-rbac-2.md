@@ -257,7 +257,9 @@ So let's add this step to our `.drone.yml` file:
   gcr:
     image: plugins/gcr
     repo: project-id/dummy
-    tags: latest
+    tags: 
+      - latest
+      - "${DRONE_COMMIT_SHA}"
     secrets: [google_credentials]
     when:
       event: push
@@ -268,7 +270,8 @@ Obviously you need to replace the `project-id` with your own project ID. Here's
 what Drone understands at this step:
 
 > If a commit is pushed on the master branch, then build the Docker image, tag 
-> it with `latest` and push it to GCR using the credentials defined in the 
+> it with `latest` and the git sha1 commit, and push it to GCR using the 
+> credentials defined in the 
 > `google_credentials` secret.
 
 We're missing something here. The `google_credentials` secret is yet to be
@@ -301,6 +304,7 @@ we're going to add to our `.drone.yml` file:
     repo: project-id/dummy
     tags: 
       - "${DRONE_TAG##v}"
+      - "${DRONE_COMMIT_SHA}"
       - latest
     secrets: [google_credentials]
     when:
@@ -346,7 +350,9 @@ pipeline:
   gcr:
     image: plugins/gcr
     repo: project-id/dummy
-    tags: latest
+    tags: 
+      - latest
+      - "${DRONE_COMMIT_SHA}"
     secrets: [google_credentials]
     when:
       event: push
@@ -357,6 +363,7 @@ pipeline:
     repo: project-id/dummy
     tags: 
       - "${DRONE_TAG##v}"
+      - "${DRONE_COMMIT_SHA}"
       - latest
     secrets: [google_credentials]
     when:
