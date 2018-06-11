@@ -35,6 +35,38 @@ I had a really interesting conversation with [Axel Wagner](https://plus.google.c
 He also explained to me why he thought naked returns are a bad idea, and his arguments are actually quite convincing.
 
 ---------------------
+# Read an io.Reader line by line
+
+```go
+package main
+
+import (
+    "bufio"
+    "fmt"
+    "log"
+    "os"
+)
+
+func main() {
+    file, err := os.Open("/path/to/file.txt")
+    if err != nil {
+        log.Fatal(err)
+    }
+    defer file.Close()
+
+    scanner := bufio.NewScanner(file)
+    for scanner.Scan() {
+		// Do something here
+        fmt.Println(scanner.Text())
+    }
+
+    if err := scanner.Err(); err != nil {
+        log.Fatal(err)
+    }
+}
+```
+
+---------------------
 # Function to unmarshall a Json URL to a struct
 
 ```go
