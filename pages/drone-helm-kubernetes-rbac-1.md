@@ -258,16 +258,10 @@ the environment variables in the next section need to match.
 
 ## Chart and configuration
 
-After a quick Google search, we can see there's a [Chart for Drone](https://github.com/kubernetes/charts/tree/master/incubator/drone).
-And it's in the `incubator` of Helm charts, so first we need to add the repo to
-Helm.
-
-```
-$ helm repo add incubator https://kubernetes-charts-incubator.storage.googleapis.com/
-$ helm repo update
-```
-
-Now that it's done, we can have a look at the [configuration](https://github.com/kubernetes/charts/tree/master/incubator/drone#configuration)
+After a quick Google search, we can see there's a 
+[Chart for Drone](https://github.com/kubernetes/charts/tree/master/stable/drone). 
+We can have a look at the 
+[configuration](https://github.com/kubernetes/charts/tree/master/stable/drone#configuration)
 part for this Chart. We'll create a `values.yaml` file that will contain the
 required information for our Drone instance to work properly.
 
@@ -308,7 +302,7 @@ VCS, in this case Github.
 That's it. We're ready. Let's fire up Helm!
 
 ```
-$ helm install --name mydrone -f values.yaml incubator/drone
+$ helm install --name mydrone -f values.yaml stable/drone
 ```
 
 Given that your DNS record is now propagated, you should be able to access your
@@ -507,7 +501,7 @@ server:
 And we just have to upgrade our deployment:
 
 ```
-$ helm upgrade mydrone -f values.yaml incubator/drone
+$ helm upgrade mydrone -f values.yaml stable/drone
 ```
 
 You're going to have to modify your Github application too. 
