@@ -203,6 +203,12 @@ In this yaml file we're declaring a [ServiceAccount](https://kubernetes.io/docs/
 named tiller, and then we're declaring a [ClusterRoleBinding](https://kubernetes.io/docs/admin/authorization/rbac/#rolebinding-and-clusterrolebinding)
 which associates the tiller service account to the cluster-admin authorization.
 
+We need to apply this to our cluster:
+
+```
+$ kubectl create -f rbac-config.yaml
+```
+
 Now we can deploy tiller using the service account we just created like this:
 
 ```
@@ -518,4 +524,6 @@ well as how to push to Google Cloud Registry.
 # Thanks
 
 Thanks to [@shirley_leu](https://twitter.com/shirley_leu) for proofreading
-this article and correcting my english mistakes !
+this article and correcting my english mistakes !  
+And thanks to San who pointed out that we need to apply our `rbac-config.yaml`
+before trying to initialize Tiller !

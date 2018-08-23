@@ -286,6 +286,8 @@ service:
   port: 80
 ```
 
+Note that if you're facing an issue with the ClusterIP type, you can switch
+it back to `NodePort`.
 And once more, let's run Helm in dry-run and check if everything matches:
 
 ```
@@ -669,3 +671,8 @@ and wait for your certificate to be created by using the
 you see your certificate, simply deploy once more with `tls.apply` set to true.
 
 Wait for a bit. And tada, you have TLS !
+
+# Thanks
+
+Thanks to San for bringing to my attention the fact that the `ClusterIP` service 
+type cause some issues. 
