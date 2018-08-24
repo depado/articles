@@ -674,5 +674,5 @@ Wait for a bit. And tada, you have TLS !
 
 # Thanks
 
-Thanks to San for bringing to my attention the fact that the `ClusterIP` service 
-type cause some issues. 
+Thanks to [San](http://www.cloudsan.cc/) for bringing to my attention the fact 
+that the `ClusterIP` service type cause some issues. 
