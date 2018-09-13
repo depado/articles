@@ -148,6 +148,8 @@ require (
 And voilà. Not only did we installed the proper versions of the two libraries
 we're using (namely gin and logrus) but also their transient dependencies.
 
+![termsvg](/assets/dialogflow-protobuf/term.svg)
+
 ### Using `dep`
 
 We'll first init dep, and add the generated golang protobuf code. 
