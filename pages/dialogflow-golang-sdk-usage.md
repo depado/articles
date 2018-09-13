@@ -49,9 +49,9 @@ with a payload to your backend, as shown in the
 > 
 > <cite>[Official Protobuf Website](https://developers.google.com/protocol-buffers/)</cite>
 
-Basically protobuf allows you to define what your data is structured once. 
+Basically protobuf allows you to define how your data is structured once. 
 Then you can generate the source code that will allow you to easily read and 
-write in that format in the language you like the most or need to use.
+write in that format with the language you like the most or need to use.
 
 # Handling Webhook
 
