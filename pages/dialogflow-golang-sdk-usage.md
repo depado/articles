@@ -237,3 +237,7 @@ contexts := wr.QueryResult.OutputContexts
 contexts = wr.GetQueryResult().GetOutputContexts()
 ```
 
+# Conclusion
+
+You can find the [complete code here](https://github.com/Depado/articles/tree/master/code/dialogflowpb).
+
