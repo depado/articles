@@ -1,6 +1,6 @@
 title: "Dialogflow Webhook, Golang and Protobuf"
 description: "Using protobuf for our Dialogflow webhook. Also using go modules ♥"
-banner: ""
+banner: "/assets/dialogflow-protobuf/banner.png"
 slug: dialogflow-webhook-golang-protobuf
 tags: ["go", "dev", "protobuf", "dialogflow", "modules"]
 date: "2018-09-11 11:54:00"
@@ -148,11 +148,11 @@ require (
 And voilà. Not only did we installed the proper versions of the two libraries
 we're using (namely gin and logrus) but also their transient dependencies.
 
-![termsvg](/assets/dialogflow-protobuf/term.svg)
+<object type="image/svg+xml" data="/assets/dialogflow-protobuf/term.svg"></object>
 
 ### Using `dep`
 
-We'll first init dep, and add the generated golang protobuf code. 
+We'll first init dep by running `dep init`.
 
 ```
 $ dep init
@@ -168,6 +168,12 @@ $ dep init
 (9/11) Wrote github.com/json-iterator/go@1.0.0
 (10/11) Wrote golang.org/x/sys@master
 (11/11) Wrote golang.org/x/crypto@master
+```
+
+Then we can add the following package:
+
+```
+$ dep ensure -add google.golang.org/genproto/googleapis/cloud/dialogflow/v2
 ```
 
 ## Handler
@@ -242,4 +248,7 @@ contexts = wr.GetQueryResult().GetOutputContexts()
 # Conclusion
 
 You can find the [complete code here](https://github.com/Depado/articles/tree/master/code/dialogflowpb).
+
+Thanks to [@ashleymcnamara](https://github.com/ashleymcnamara) for the amazing
+[Gopher Artworks](https://github.com/ashleymcnamara/gophers) !
 
