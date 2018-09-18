@@ -4,7 +4,7 @@ banner: "/assets/dialogflow-protobuf/banner.png"
 slug: dialogflow-webhook-golang-protobuf
 tags: ["go", "dev", "protobuf", "dialogflow", "modules"]
 date: "2018-09-11 11:54:00"
-draft: true
+draft: false
 
 # Introduction
 
