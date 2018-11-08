@@ -24,7 +24,8 @@ steps:
     target: /home/depado/smallblog/pages/
     source: ./pages/
     strip_components: 2
-    ssh_key:
+  environment:
+    SSH_KEY:
       from_secret: ssh_key
   trigger:
     branch: [master]
