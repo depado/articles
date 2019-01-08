@@ -12,9 +12,6 @@ steps:
       from_secret: ssh_key
     script:
       - rm -r /home/depado/smallblog/pages/*
-  when:
-    branch: [master]
-    event: [push]
 
 - name: deploy
   image: appleboy/drone-scp
@@ -27,9 +24,6 @@ steps:
   environment:
     SSH_KEY:
       from_secret: ssh_key
-  when:
-    branch: [master]
-    event: [push]
 
 - name: telegram
   image: appleboy/drone-telegram
@@ -44,3 +38,7 @@ steps:
       [Build {{build.number}}]({{build.link}}) by {{commit.author}} {{#success build.status}}succeeded{{else}}failed{{/success}} in {{buildtime build.started}}  
 
       `{{truncate commit.sha 8}}`: "{{commit.message}}"
+
+trigger:
+  branch: [master]
+  event: [push]
