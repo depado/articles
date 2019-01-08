@@ -12,7 +12,7 @@ steps:
       from_secret: ssh_key
     script:
       - rm -r /home/depado/smallblog/pages/*
-  trigger:
+  when:
     branch: [master]
     event: [push]
 
@@ -27,7 +27,7 @@ steps:
   environment:
     SSH_KEY:
       from_secret: ssh_key
-  trigger:
+  when:
     branch: [master]
     event: [push]
 
@@ -39,8 +39,8 @@ steps:
     token:
       from_secret: telegram_token
     message: >
-      *{{ repo.name }}*  
+      *{{repo.owner}}{{repo.name}}*  
 
-      [Build {{build.number}}]({{build.link}}) by {{build.author}}{{#success build.status}}succeeded{{else}}failed{{/success}} in {{since build.started}}  
+      [Build {{build.number}}]({{build.link}}) by {{commit.author}}{{#success build.status}}succeeded{{else}}failed{{/success}} in {{since build.started}}  
       
       `{{commit.sha}}`
