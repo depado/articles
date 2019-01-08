@@ -43,4 +43,4 @@ steps:
 
       [Build {{build.number}}]({{build.link}}) by {{commit.author}} {{#success build.status}}succeeded{{else}}failed{{/success}} in {{buildtime build.started}}  
       
-      `{{truncate commit.sha 8}}`: _{{commit.message}}_  
+      `{{truncate commit.sha 8}}`: __{{commit.message}}__  
