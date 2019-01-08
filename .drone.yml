@@ -30,3 +30,10 @@ steps:
   trigger:
     branch: [master]
     event: [push]
+
+- name: telegram
+  image: appleboy/drone-telegram
+  settings:
+    to: 790376882
+    token:
+      from_secret: telegram_token
