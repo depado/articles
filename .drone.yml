@@ -39,8 +39,8 @@ steps:
     token:
       from_secret: telegram_token
     message: >
-      *{{repo.owner}}{{repo.name}}*  
+      *{{repo.owner}}/{{repo.name}}*  
 
-      [Build {{build.number}}]({{build.link}}) by {{commit.author}}{{#success build.status}}succeeded{{else}}failed{{/success}} in {{since build.started}}  
+      [Build {{build.number}}]({{build.link}}) by {{commit.author}} {{#success build.status}}succeeded{{else}}failed{{/success}} in {{since job.started}}  
       
       `{{commit.sha}}`
