@@ -40,5 +40,7 @@ steps:
       from_secret: telegram_token
     message: >
       *{{ repo.name }}*  
-      [Build {{build.number}}]({{build.link}}) on branch `{{build.branch}}` by {{build.author}}{{#success build.status}}succeeded{{else}}failed{{/success}} in {{since build.started}}  
+
+      [Build {{build.number}}]({{build.link}}) by {{build.author}}{{#success build.status}}succeeded{{else}}failed{{/success}} in {{since build.started}}  
+      
       `{{commit.sha}}`
