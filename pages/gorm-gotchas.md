@@ -368,6 +368,72 @@ func (a *Article) UnmarshalMetaData() error {
 Now you can marshal before saving your article, and unmarshal once you retrieve
 it from the database !
 
+## Using UUID as Primary Key
+
+If you wish to use the UUID extension for postgres, this section is for you.
+First we'll declare our model with a slight change, the ID won't be an `uint`
+anymore. Se we can't use `gorm.Model` here:
+
+```go
+import (
+	"time"
+
+	uuid "github.com/satori/go.uuid"
+)
+
+type User struct {
+	ID        uuid.UUID `gorm:"primary_key;type:uuid;default:uuid_generate_v4()"`
+	CreatedAt time.Time
+	UpdatedAt time.Time
+	DeletedAt *time.Time
+	Email string
+}
+```
+
+Now if you try to create this model using a migration (or `CreateTable`) you'll
+be faced with the issue that the `uuid-ossp` doesn't exist in your database and
+is required. So the simple solution is to create this extension on the database
+you're using:
+
+```sql
+> CREATE EXTENSION IF NOT EXISTS "uuid-ossp" WITH SCHEMA public;
+```
+
+Alright now you're good to go. But what if we had an initial database migration
+that checked for that extension before creating tables and doing a lot of
+other stuff?
+
+Here's an example on how to do it:
+
+```go
+import (
+	"errors"
+
+	"github.com/jinzhu/gorm"
+	gormigrate "gopkg.in/gormigrate.v1"
+)
+
+var precheck = &gormigrate.Migration{
+	ID: "precheck",
+	Migrate: func(tx *gorm.DB) error {
+		var (
+			requiredext = "uuid-ossp"
+			count       int
+		)
+		if err := tx.Table("pg_extension").Where("extname = ?", requiredext).Count(&count).Error; err != nil {
+			return err
+		}
+		if count < 1 {
+			return errors.New("extension uuid-ossp doesn't exist in the target database but is required")
+		}
+		return nil
+	},
+}
+```
+
+Run this migration first, it will return an error this extension isn't found
+thus preventing the following migrations to run.
+
 # Troubleshooting
 
 ## Relations are not created using CreateTable
