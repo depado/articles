@@ -1,8 +1,8 @@
 title: "QOR Admin Tutorial"
 description: |
-    QOR Admin is a great admin interface creation tool but, just like gorm,
-    the documentation sometimes lacks explanation and tutorials to help you get
-    started
+QOR Admin is a great admin interface creation tool but, just like gorm,
+the documentation sometimes lacks explanation and tutorials to help you get
+started
 slug: qor-admin-tutorial
 banner: "/assets/qor-admin/banner.png"
 draft: true
@@ -43,7 +43,7 @@ the usual SQL query to export data, if you know what I mean.
 
 It also enables to modify data and more importantly **keep it consistent** by
 writing your business rules as part of your admin interface. So we can prevent
-someone from modifying one of our products and set the price to \$0 (or 0€, or
+someone from modifying one of our products and set the price to $0 (or 0€, or
 whatever the currency, you get my point). Or prevent data loss. Or set specific
 behavior for certain fields. The admin interface use case is then completely
 different of a dashboard that does only "read" operations to generate insights
@@ -66,20 +66,47 @@ kind of package that could be reused quickly without having to overthink things.
 
 # Initial Setup
 
-## Heads Up
-
 QOR (in general and not just admin) is tightly coupled with
 [gorm](https://gorm.io), mostly because gorm is an amazing ORM for the Go
-language, and also because [jinzhu](https://github.com/jinzhu) who created gorm 
-also helped creating QOR. The main issue here is that if you're not already 
-using gorm, you might have a hard time using it "only" for the admin interface. 
-For this reason we won't cover the case where you're not already using gorm for 
+language, and also because [jinzhu](https://github.com/jinzhu) who created gorm
+also helped creating QOR. The main issue here is that if you're not already
+using gorm, you might have a hard time using it "only" for the admin interface.
+For this reason we won't cover the case where you're not already using gorm for
 your API or web service.
+
+This section's goal is to provide a basic example of how to use QOR Admin and
+Gorm. We'll be using this example throughout the article but if you already
+have a use-case where you're connected to a database using gorm and already have
+some tables in there with the associated structs you can skip this part
+entirely.
+
+## PostgreSQL
+
+We'll first create our database and we will be using [PostgreSQL](https://www.postgresql.org/)
+with the [uuid-ossp](https://www.postgresql.org/docs/10/uuid-ossp.html)
+extension to generate UUID as primary key. This is mostly useless for this
+example, but it's always nice to see another way of generating primary keys than
+a simple `uint`.
+
+```sql
+postgres=# CREATE DATABASE qor_tutorial;
+CREATE DATABASE
+postgres=# CREATE USER qor WITH ENCRYPTED PASSWORD 'password';
+CREATE ROLE
+postgres=# GRANT ALL PRIVILEGE ON DATABASE qor_tutorial TO qor;
+GRANT
+postgres=# \c qor_tutorial
+qor_tutorial=# CREATE EXTENSION IF NOT EXISTS "uuid-ossp" WITH SCHEMA public;
+CREATE EXTENSION
+```
 
 ## Base Program
 
 Let's get started by creating a base program which we'll then use as a reference
-for our future QOR related use. 
+for the rest of the article. In this snippet we'll do two things:
+
+- Define a struct that is understandable by gorm
+- Connect to the database we created earlier
 
 ```go
 package main
@@ -88,6 +115,7 @@ import (
 	"time"
 
 	"github.com/jinzhu/gorm"
+	_ "github.com/jinzhu/gorm/dialects/postgres"
 	uuid "github.com/satori/go.uuid"
 	"github.com/sirupsen/logrus"
 )
@@ -103,24 +131,77 @@ type product struct {
 }
 
 func main() {
-	db, err := gorm.Open("postgres", "host=...")
-	if err != nil {
+	var db *gorm.DB
+	var err error
+	if db, err = gorm.Open(
+		"postgres",
+		"user=qor dbname=qor_tutorial password=password sslmode=disable",
+	); err != nil {
 		logrus.WithError(err).Fatal("Couldn't initialize database connection")
 	}
 	defer db.Close()
 }
 ```
 
-This is a minimal example, this post isn't about gorm itself but about QOR
-so we'll keep things simple like that. If you need more information on how to
+This is a minimal example and this post isn't about gorm itself but about QOR
+so we'll keep things simple. If you need more information on how to
 use gorm, please refer to my [Gorm Gotchas](/post/gorm-gotchas) post. 
+
+We'll add a few migrations which you can find in
+[the code associated to this post](https://github.com/Depado/articles/blob/master/code/qor/v1/migrations/).
+These migrations (`uuidCheck` and `initial`) are used to check if the
+`uuid-ossp` extension exists in the database we're connecting to, and to create
+our `products` table. Simply import the `migrate` package and run:
+
+```go
+if err = migrate.Start(db); err != nil {
+	logrus.WithError(err).Fatal("Couldn't run migration")
+}
+```
+
+So we have a database and a model. Now we just want to add QOR Admin. But we
+want to use the [gin](https://github.com/gin-gonic/gin) router, so let's head to
+[the QOR documentation](https://doc.getqor.com/admin/integration.html#integrate-with-gin)
+and find out how we can use QOR Admin with it.
+
+```go
+adm := admin.New(&admin.AdminConfig{SiteName: "Admin", DB: db})
+mux := http.NewServeMux()
+adm.MountTo("/admin", mux)
+
+r := gin.New()
+r.Any("/admin/*resources", gin.WrapH(mux))
+r.Run("127.0.0.1:8080")
+```
+
+## Adding Resource
+
+Now let's add our `product` model to our new admin interface:
+
+```go
+// imports, db connection, etc.
+
+adm := admin.New(&admin.AdminConfig{SiteName: "Admin", DB: db})
+adm.AddResource(&product{})
+
+// mux, gin, etc.
+```
+
+We can now head to `127.0.0.1:8080/admin` to see our admin interface in action!
+
+![products](/assets/qor-admin/product.gif)
+
+That's it. Now our product model is successfully registered with QOR, we can
+interact with the data in our database, add/delete/edit products.
 
 # Authentication
 
+![lock](/assets/qor-admin/lock.gif)
+
 Now we have a nice looking admin interface which integrates our model and allows
 us to modify data in our database. But there's no authentication in front of it,
-which is seriously problematic. Luckily, after a quick search on 
-[QOR's Documentation](https://doc.getqor.com/) we found a page about 
+which is seriously problematic. Luckily, after a quick search on
+[QOR's Documentation](https://doc.getqor.com/) we found a page about
 authentication [here](https://doc.getqor.com/admin/authentication.html)!
 
 We're told that we need to implement an interface. Well ok. How are we supposed
@@ -130,7 +211,7 @@ forms and other stuff like that. So let's get started.
 ## Admin User Model
 
 The goal here is to create another table which will only contain our admin users
-for our admin interface (people that are allowed to login and do things). 
+for our admin interface (people that are allowed to login and do things).
 We don't need a really complex one, just enough to identify people connecting
 on our admin interface, so let's go with something like that:
 
@@ -179,7 +260,7 @@ func (u AdminUser) CheckPassword(raw string) bool {
 ```
 
 That's right let's just use bcrypt. Now we need to create that table and add our
-first user. 
+first user.
 
 ## Migration
 
@@ -236,14 +317,14 @@ var initAdmin = &gormigrate.Migration{
 
 ## Adding Admin User to Admin
 
-If everything went well, you now have a new table called `admin_users` which 
+If everything went well, you now have a new table called `admin_users` which
 only contains one single record, the user you created in the migration. We're
 going to add the `AdminUser` model to our admin interface **but** we need to
 define the behavior intended for the `Password` field. QOR Admin is great but
 if you don't tell it what to do with the data, it just puts it there. Meaning:
 a clear text password if we modify our user in the admin interface and save it.
 
-This is where QOR Admin can get tricky. 
+This is where QOR Admin can get tricky.
 
 ```go
 
@@ -251,7 +332,7 @@ This is where QOR Admin can get tricky.
 
 # Deployment and Bindatafs
 
-This part was tricky. As in, really tricky and it took me a lot of time to 
+This part was tricky. As in, really tricky and it took me a lot of time to
 actually understand what was going on.
 
 # Thanks
