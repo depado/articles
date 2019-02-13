@@ -1,8 +1,8 @@
 title: "QOR Admin Tutorial"
 description: |
-QOR Admin is a great admin interface creation tool but, just like gorm,
-the documentation sometimes lacks explanation and tutorials to help you get
-started
+	QOR Admin is a great admin interface creation tool but, just like gorm,
+	the documentation sometimes lacks explanation and tutorials to help you get
+	started
 slug: qor-admin-tutorial
 banner: "/assets/qor-admin/banner.png"
 draft: true
