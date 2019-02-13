@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Login</title>
+    <link rel="stylesheet" href="https://unpkg.com/spectre.css/dist/spectre.min.css">
+    <link rel="stylesheet" href="https://unpkg.com/spectre.css/dist/spectre-icons.min.css">
+</head>
+
+<style>
+    html {
+        height: 100vh;
+    }
+    body {
+        display: flex;
+        flex-direction: column;
+        height: 100vh;
+    }
+    form {
+        flex: 1 0 auto;
+    }
+    form .has-icon-left {
+        margin-bottom: 5px;
+    }
+    form .btn {
+        width: 100%;
+    }
+    .container {
+        height: 100%;
+    }
+    .columns {
+        height: 100%;
+    }
+</style>
+
+<body>
+    <div class="container">
+        <div class="columns">
+            <div class="col-4 col-mx-auto flex-centered">
+                <form method="POST">
+                    <div class="has-icon-left">
+                        <input class="form-input" name="email" type="mail" placeholder="Email">
+                        <i class="form-icon icon icon-mail"></i>
+                    </div>
+                    <div class="has-icon-left">
+                        <input class="form-input" name="password" type="password" placeholder="Password">
+                        <i class="form-icon icon icon-more-horiz"></i>
+                    </div>
+
+                    <button class="btn btn-primary input-group-btn">Submit</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>

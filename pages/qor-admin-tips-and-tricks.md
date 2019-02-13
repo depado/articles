@@ -400,59 +400,46 @@ type Auth interface {
 
 The `LoginURL` and `LogoutURL` are not complex to implement, we'll just tell
 QOR where it should redirect users that are not authenticated or want to logout.
-Let's implement those right away by creating our own auth structure:
-
-```go
-type Auth struct{}
-
-// LoginURL statisfies the Auth interface and returns the route used to log
-// users in
-func (a Auth) LoginURL(c *admin.Context) string { // nolint: unparam
-	return "/login"
-}
-
-// LogoutURL statisfies the Auth interface and returns the route used to logout
-// a user
-func (a Auth) LogoutURL(c *admin.Context) string { // nolint: unparam
-	return "/logout"
-}
-```
-
 The last function we need to implement, on the other hand, is going to define
 how we'll identify users. For this, we'll use 
 [gin-contrib/sessions](https://github.com/gin-contrib/sessions) with a cookie 
 backend. We're going to define a few things now:
 
 - The session name: it can be anything, as long as it doesn't collide with 
-another session. I chose `admsession` for this example.
+another session.
 - The thing we'll store in the cookie to identify the user: Let's store its ID.
 
-We need to tweak our `Auth` structure because we need access to the database so
-we can check if said user exists. So let's add the `*gorm.DB` connection and use 
-it. Since the end goal of this post is to have something reusable and flexible, 
-let's go a little further:
+We also need an access to our database connection to check if the password is
+correct or even if the user exists. 
 
 ```go
-// Auth is a structure to handle authentication for QOR. It will satisify the
-// qor.Auth interface.
-type Auth struct {
-	db    *gorm.DB
-	store cookie.Store
+type auth struct {
+	db      *gorm.DB
+	session sessionConfig
+	paths   pathConfig
+}
 
-	login   string
-	logout  string
-	session string
-	key     string
+type sessionConfig struct {
+	name  string
+	key   string
+	store cookie.Store
+}
+
+type pathConfig struct {
+	login  string
+	logout string
+	admin  string
 }
 
 // GetCurrentUser satisfies the Auth interface and returns the current user
-func (a Auth) GetCurrentUser(c *admin.Context) qor.CurrentUser {
+func (a auth) GetCurrentUser(c *admin.Context) qor.CurrentUser {
 	var userid uint
-	s, err := a.store.Get(c.Request, a.session)
+
+	s, err := a.session.store.Get(c.Request, a.session.name)
 	if err != nil {
 		return nil
 	}
-	if v, ok := s.Values[a.key]; ok {
+	if v, ok := s.Values[a.session.key]; ok {
 		userid = v.(uint)
 	} else {
 		return nil
@@ -465,6 +452,18 @@ func (a Auth) GetCurrentUser(c *admin.Context) qor.CurrentUser {
 
 	return nil
 }
+
+// LoginURL statisfies the Auth interface and returns the route used to log
+// users in
+func (a auth) LoginURL(c *admin.Context) string { // nolint: unparam
+	return a.paths.login
+}
+
+// LogoutURL statisfies the Auth interface and returns the route used to logout
+// a user
+func (a auth) LogoutURL(c *admin.Context) string { // nolint: unparam
+	return a.paths.logout
+}
 ```
 
 There. Now, **if there is a session** containing a user ID that actually exists
@@ -472,7 +471,118 @@ in our database, we're good to go and QOR can safely give access to the admin
 interface. But how are we going to create said session? And allow users to
 login?
 
-### Gin endpoints
+### Gin Endpoints
+
+In order to properly handle our session, we're going to need three endpoints:
+
+- GET /login - Renders a template with a login form
+- POST /login - Handles the form submission and checks data in database
+- GET /logout - Destroys the session and redirects to /login
+
+We can reuse our Auth structure because it already embeds the database, session
+and everything we need for those three endpoints. We'll see the login template
+in the next section, let's just see what it looks like from the backend point
+of view:
+
+```go
+// GetLogin simply returns the login page
+func (a *auth) GetLogin(c *gin.Context) {
+	if sessions.Default(c).Get(a.session.key) != nil {
+		c.Redirect(http.StatusSeeOther, a.paths.admin)
+		return
+	}
+	c.HTML(http.StatusOK, "login", gin.H{})
+}
+
+// PostLogin is the handler to check if the user can connect
+func (a *Auth) PostLogin(c *gin.Context) {
+	session := sessions.Default(c)
+	email := c.PostForm("email")
+	password := c.PostForm("password")
+	if email == "" || password == "" {
+		c.Redirect(http.StatusSeeOther, a.paths.login)
+		return
+	}
+	var u models.AdminUser
+	if a.db.Where(&models.AdminUser{Email: email}).First(&u).RecordNotFound() {
+		c.Redirect(http.StatusSeeOther, a.paths.login)
+		return
+	}
+	if !u.CheckPassword(password) {
+		c.Redirect(http.StatusSeeOther, a.paths.login)
+		return
+	}
+
+	now := time.Now()
+	u.LastLogin = &now
+	a.db.Save(&u)
+
+	session.Set(a.session.key, u.ID)
+	err := session.Save()
+	if err != nil {
+		logrus.WithError(err).Warn("Couldn't save session")
+		c.Redirect(http.StatusSeeOther, a.paths.login)
+		return
+	}
+	c.Redirect(http.StatusSeeOther, a.paths.admin)
+}
+
+// GetLogout allows the user to disconnect
+func (a *Auth) GetLogout(c *gin.Context) {
+	session := sessions.Default(c)
+	session.Delete(a.session.key)
+	if err := session.Save(); err != nil {
+		logrus.WithError(err).Warn("Couldn't save session")
+	}
+	c.Redirect(http.StatusSeeOther, a.paths.login)
+}
+```
+
+When the user submits the form with its credentials, the endpoint checks in the
+database if the user exists and if the provided password matches the one stored
+in database. If both conditions match, then we update the `LastLogin` field of
+our user, save it in database, update its session and redirects it to the admin 
+interface endpoint. Upon reaching this endpoint, the `GetCurrentUser` function
+is executed and now returns our user because it has the proper session values,
+thus granting access to the admin.
+
+### Login Template
+
+Please refer to the HTML file located [here](https://github.com/Depado/articles/tree/master/code/qor/v1/templates/login.html)
+and place it in a `templates` directory.
+
+### Wrapping things up
+
+Now that things are getting a bit complicated with all that code floating around
+let's wrap things up and organize our stuff.
+
+- Move your `Product` and `AdminUser` structs in a `models` package.
+- Move your `Auth` struct with all its methods in an `admin` package.
+- Move your migrations in a `migrate` package (or wherever you like really)
+
+The structure of your directory should look like this by now:
+
+```
+.
+├── admin
+│   └── auth.go
+├── main.go
+├── migrate
+│   ├── initial.go
+│   ├── migrate.go
+│   ├── user.go
+│   └── uuid.go
+└── models
+    ├── product.go
+    └── user.go
+```
+
+Now let's add a `admin/admin.go` file in which put our admin definition and
+another extra structure:
+
+```
+
+```
 
 # Deployment and Bindatafs
 
