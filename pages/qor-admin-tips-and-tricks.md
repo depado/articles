@@ -23,8 +23,8 @@ interests us here is the admin interface. Let's say we're creating an API
 and store our data (stuff like your users, products, etc...) in a database. You
 just don't need QOR to do that, you can use whatever router you're used to work
 with for example. But QOR is a full framework, if you want to look at everything
-it can do, head to the [getqor website](https://getqor.com/) and prepare
-yourself to be amazed because it can do so many things:
+it can do, head to the [getqor website](https://getqor.com/) and be prepared to 
+be amazed because it can do so many things:
 
 ![qor features](/assets/qor-admin/qor-features.png)
 
@@ -36,7 +36,7 @@ even have an [enterprise package](https://getqor.com/en/enterprise)!
 
 Frameworks like [Django](https://www.djangoproject.com/) give you an admin
 interface to manage your data. This is great because it allows you to display
-data in a web interface, modify them or execute one-shot actions on some
+data in a web interface, modify it or execute one-shot actions on some
 records. For example, it's rather easy to create a CSV export of one of your
 tables in the form a single button that any admin can click on, thus avoiding
 the usual SQL query to export data, if you know what I mean.
@@ -45,8 +45,8 @@ It also enables to modify data and more importantly **keep it consistent** by
 writing your business rules as part of your admin interface. So we can prevent
 someone from modifying one of our products and set the price to $0 (or 0€, or
 whatever the currency, you get my point). Or prevent data loss. Or set specific
-behavior for certain fields. The admin interface use case is then completely
-different of a dashboard that does only "read" operations to generate insights
+behavior for certain fields. The admin interface use-case is then completely
+different from a dashboard that does only "read" operations to generate insights
 like [Metabase](https://www.metabase.com/) (which is an amazing tool too!).
 
 So QOR Admin is a component of the QOR stack. And the great news is: You don't
@@ -59,7 +59,7 @@ following screenshot is from the [QOR Admin Demo](http://demo.getqor.com/admin):
 ## Motivations
 
 Although QOR Admin is an amazing open-source lib and product, sometimes the
-documentation lacks of a clear way to do things. This article's goal is to act
+documentation lacks a clear way to do things. This article's goal is to act
 as a kind of enhanced documentation and tutorial. We'll try to leverage the
 annoying steps of setting up QOR following its best practices and create some
 kind of package that could be reused quickly without having to overthink things.
@@ -201,11 +201,11 @@ interact with the data in our database, add/delete/edit products.
 Now we have a nice looking admin interface which integrates our model and allows
 us to modify data in our database. But there's no authentication in front of it,
 which is seriously problematic. Luckily, after a quick search on
-[QOR's Documentation](https://doc.getqor.com/) we found a page about
+[QOR's Documentation](https://doc.getqor.com/) we find a page about
 authentication [here](https://doc.getqor.com/admin/authentication.html)!
 
 We're told that we need to implement an interface. Well ok. How are we supposed
-to do that? Well we need to understand how a simple auth system works, cookies
+to do that? Well we need to understand how a simple auth system works, cookies,
 forms and other stuff like that. So let's get started.
 
 ## Admin User Model
@@ -229,7 +229,6 @@ type AdminUser struct {
 
 Basic really. Email, name, password and last login operation. Security people
 I see you, don't worry, the password won't be clear text. We're not barbarians.
-
 So we're going to add a few methods:
 
 ```go
@@ -259,8 +258,10 @@ func (u AdminUser) CheckPassword(raw string) bool {
 }
 ```
 
-That's right let's just use bcrypt. Now we need to create that table and add our
-first user.
+The `DisplayName()` method will be used by QOR to display the user's name in the
+admin interface, or its email address if the `FirstName` and `LastName` fields
+are not filled. And we'll use `bcrypt` to hash our passwords. Now we need to 
+create that table and add our first user.
 
 ## Migration
 
@@ -315,7 +316,7 @@ var initAdmin = &gormigrate.Migration{
 }
 ```
 
-## Adding Admin User to Admin
+## Admin User in Admin
 
 If everything went well, you now have a new table called `admin_users` which
 only contains one single record, the user you created in the migration. We're
@@ -324,11 +325,154 @@ define the behavior intended for the `Password` field. QOR Admin is great but
 if you don't tell it what to do with the data, it just puts it there. Meaning:
 a clear text password if we modify our user in the admin interface and save it.
 
-This is where QOR Admin can get tricky.
+This is where QOR Admin can get tricky. We'll be using the `adm` variable
+that we created earlier in the minimal initial code. When you use `AddResource`
+it returns a `*Resource` that can be fully customized. In the following code
+snippet we're going to define the behavior of the `Password` field. First we're
+going to remove this field from the index view (the list of our users), and then
+we're going to use `Meta` to change the way it is displayed as well as its
+default behavior. 
 
 ```go
-
+usr := adm.AddResource(&AdminUser{}, &admin.Config{Menu: []string{"User Management"}})
+usr.IndexAttrs("-Password")
+usr.Meta(&admin.Meta{
+	Name: "Password",
+	Type: "password",
+	Setter: func(resource interface{}, metaValue *resource.MetaValue, context *qor.Context) {
+		values := metaValue.Value.([]string)
+		if len(values) > 0 {
+			if np := values[0]; np != "" {
+				pwd, err := bcrypt.GenerateFromPassword([]byte(np), bcrypt.DefaultCost)
+				if err != nil {
+					context.DB.AddError(validations.NewError(usr, "Password", "Can't encrypt password")) // nolint: gosec,errcheck
+					return
+				}
+				u := resource.(*AdminUser)
+				u.Password = pwd
+			}
+		}
+	},
+})
 ```
+
+Well... The first two lines are pretty explicit. But the `Meta` function needs
+a little more attention. First, we declare that this meta information is about
+the `Password` field, and we define its type, it's a password field so it should
+be displayed like one. 
+
+Now the `Setter`. The setter is a function that is executed when a record is
+edited or created. The first thing to do is to check if there is a changed
+value or not. By checking the length of `values` (which needs to be type 
+asserted to a slice of string, because `resource.MetaValue` has many other uses)
+we know if that field has been modified (or filled in the case of a new record)
+or not. Then, **in that specific case** we know there's only one value because
+it's a password input (so there can only be one value, the password).
+
+Once we checked all that and got the actual value that was filled in the input,
+we can use bcrypt to hash the password. If there's an error, QOR has its own
+way of handling it, we need to add said error to the `context.DB` that will
+be displayed to our user if it's not empty at the end of the query (meaning, you
+can add more than one throughout your setter). 
+
+And once all that is done, we type assert that the resource is of type 
+`AdminUser` and we set its `Password` field to the new password we just
+hashed.
+
+![user-add](/assets/qor-admin/user-add.png)
+
+## Authentication with Gin
+
+### QOR Admin's expectations
+
+Now we have a database that contains both our application data (our products)
+and our admin users. What we need to do is allow a user to login, thus 
+implementing the interface QOR Admin expects. This interface is composed
+of three functions:
+
+```go
+type Auth interface {
+  GetCurrentUser(*Context) qor.CurrentUser // get current user, if don't have permission, then return nil
+  LoginURL(*Context) string // get login url, if don't have permission, will redirect to this url
+  LogoutURL(*Context) string // get logout url, if click logout link from admin interface, will visit this page
+}
+```
+
+The `LoginURL` and `LogoutURL` are not complex to implement, we'll just tell
+QOR where it should redirect users that are not authenticated or want to logout.
+Let's implement those right away by creating our own auth structure:
+
+```go
+type Auth struct{}
+
+// LoginURL statisfies the Auth interface and returns the route used to log
+// users in
+func (a Auth) LoginURL(c *admin.Context) string { // nolint: unparam
+	return "/login"
+}
+
+// LogoutURL statisfies the Auth interface and returns the route used to logout
+// a user
+func (a Auth) LogoutURL(c *admin.Context) string { // nolint: unparam
+	return "/logout"
+}
+```
+
+The last function we need to implement, on the other hand, is going to define
+how we'll identify users. For this, we'll use 
+[gin-contrib/sessions](https://github.com/gin-contrib/sessions) with a cookie 
+backend. We're going to define a few things now:
+
+- The session name: it can be anything, as long as it doesn't collide with 
+another session. I chose `admsession` for this example.
+- The thing we'll store in the cookie to identify the user: Let's store its ID.
+
+We need to tweak our `Auth` structure because we need access to the database so
+we can check if said user exists. So let's add the `*gorm.DB` connection and use 
+it. Since the end goal of this post is to have something reusable and flexible, 
+let's go a little further:
+
+```go
+// Auth is a structure to handle authentication for QOR. It will satisify the
+// qor.Auth interface.
+type Auth struct {
+	db    *gorm.DB
+	store cookie.Store
+
+	login   string
+	logout  string
+	session string
+	key     string
+}
+
+// GetCurrentUser satisfies the Auth interface and returns the current user
+func (a Auth) GetCurrentUser(c *admin.Context) qor.CurrentUser {
+	var userid uint
+	s, err := a.store.Get(c.Request, a.session)
+	if err != nil {
+		return nil
+	}
+	if v, ok := s.Values[a.key]; ok {
+		userid = v.(uint)
+	} else {
+		return nil
+	}
+
+	var user models.AdminUser
+	if !a.db.First(&user, "id = ?", userid).RecordNotFound() {
+		return &user
+	}
+
+	return nil
+}
+```
+
+There. Now, **if there is a session** containing a user ID that actually exists
+in our database, we're good to go and QOR can safely give access to the admin
+interface. But how are we going to create said session? And allow users to
+login?
+
+### Gin endpoints
 
 # Deployment and Bindatafs
 

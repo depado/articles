@@ -10,6 +10,7 @@ func Start(db *gorm.DB) error {
 	m := gormigrate.New(db, gormigrate.DefaultOptions, []*gormigrate.Migration{
 		uuidCheck,
 		initial,
+		adminUser,
 	})
 	return m.Migrate()
 }

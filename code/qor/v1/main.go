@@ -2,26 +2,20 @@ package main
 
 import (
 	"net/http"
-	"time"
 
-	"github.com/Depado/articles/code/qor/migrate"
 	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/postgres"
 	"github.com/qor/admin"
-	uuid "github.com/satori/go.uuid"
+	"github.com/qor/qor"
+	"github.com/qor/qor/resource"
+	"github.com/qor/validations"
 	"github.com/sirupsen/logrus"
+	"golang.org/x/crypto/bcrypt"
+
+	"github.com/Depado/articles/code/qor/v1/migrate"
+	"github.com/Depado/articles/code/qor/v1/models"
 )
-
-type product struct {
-	ID        uuid.UUID `gorm:"primary_key;type:uuid;default:uuid_generate_v4()"`
-	CreatedAt time.Time
-	UpdatedAt time.Time
-	DeletedAt *time.Time
-
-	Name  string
-	Price int
-}
 
 func main() {
 	var db *gorm.DB
@@ -41,7 +35,27 @@ func main() {
 	mux := http.NewServeMux()
 	adm.MountTo("/admin", mux)
 
-	adm.AddResource(&product{})
+	adm.AddResource(&models.Product{})
+	usr := adm.AddResource(&models.AdminUser{}, &admin.Config{Menu: []string{"User Management"}})
+	usr.IndexAttrs("-Password")
+	usr.Meta(&admin.Meta{
+		Name: "Password",
+		Type: "password",
+		Setter: func(resource interface{}, metaValue *resource.MetaValue, context *qor.Context) {
+			values := metaValue.Value.([]string)
+			if len(values) > 0 {
+				if np := values[0]; np != "" {
+					pwd, err := bcrypt.GenerateFromPassword([]byte(np), bcrypt.DefaultCost)
+					if err != nil {
+						context.DB.AddError(validations.NewError(usr, "Password", "Can't encrypt password")) // nolint: gosec,errcheck
+						return
+					}
+					u := resource.(*models.AdminUser)
+					u.Password = pwd
+				}
+			}
+		},
+	})
 
 	r := gin.New()
 	r.Any("/admin/*resources", gin.WrapH(mux))
