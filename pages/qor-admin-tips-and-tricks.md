@@ -148,7 +148,7 @@ so we'll keep things simple. If you need more information on how to
 use gorm, please refer to my [Gorm Gotchas](/post/gorm-gotchas) post. 
 
 We'll add a few migrations which you can find in
-[the code associated to this post](https://github.com/Depado/articles/blob/master/code/qor/v1/migrations/).
+[the code associated to this post](https://github.com/Depado/articles/blob/master/code/qor/migrations/).
 These migrations (`uuidCheck` and `initial`) are used to check if the
 `uuid-ossp` extension exists in the database we're connecting to, and to create
 our `products` table. Simply import the `migrate` package and run:
@@ -475,9 +475,9 @@ login?
 
 In order to properly handle our session, we're going to need three endpoints:
 
-- GET /login - Renders a template with a login form
-- POST /login - Handles the form submission and checks data in database
-- GET /logout - Destroys the session and redirects to /login
+- `GET /login` - Renders a template with a login form
+- `POST /login` - Handles the form submission and checks data in database
+- `GET /logout` - Destroys the session and redirects to /login
 
 We can reuse our Auth structure because it already embeds the database, session
 and everything we need for those three endpoints. We'll see the login template
@@ -491,7 +491,7 @@ func (a *auth) GetLogin(c *gin.Context) {
 		c.Redirect(http.StatusSeeOther, a.paths.admin)
 		return
 	}
-	c.HTML(http.StatusOK, "login", gin.H{})
+	c.HTML(http.StatusOK, "login.html", gin.H{})
 }
 
 // PostLogin is the handler to check if the user can connect
@@ -546,43 +546,148 @@ interface endpoint. Upon reaching this endpoint, the `GetCurrentUser` function
 is executed and now returns our user because it has the proper session values,
 thus granting access to the admin.
 
-### Login Template
-
-Please refer to the HTML file located [here](https://github.com/Depado/articles/tree/master/code/qor/v1/templates/login.html)
-and place it in a `templates` directory.
-
 ### Wrapping things up
 
 Now that things are getting a bit complicated with all that code floating around
-let's wrap things up and organize our stuff.
+let's wrap things up and organize our stuff. Since our goal here is to create
+a mostly independent package that initializes our admin interface, we'll create
+a new package named `admin`. In there we'll try to wrap all the things we did
+earlier.
 
-- Move your `Product` and `AdminUser` structs in a `models` package.
-- Move your `Auth` struct with all its methods in an `admin` package.
-- Move your migrations in a `migrate` package (or wherever you like really)
+We'll create a `admin/user.go` which will contain both our admin user model and
+our migration. Since the package is already called `admin` we'll simply rename 
+it `User`, and add the function that adds our user to the admin interface in
+that same file. We'll also add a function that tells gorm the table name since
+we changed the name of our model:
 
-The structure of your directory should look like this by now:
+```go
+// User defines how an admin user is represented in database
+type User struct {
+	gorm.Model
+	Email     string `gorm:"not null;unique"`
+	FirstName string
+	LastName  string
+	Password  []byte
+	LastLogin *time.Time
+}
 
+// TableName allows to override the name of the table
+func (u User) TableName() string {
+	return "admin_users"
+}
 ```
-.
-├── admin
-│   └── auth.go
-├── main.go
-├── migrate
-│   ├── initial.go
-│   ├── migrate.go
-│   ├── user.go
-│   └── uuid.go
-└── models
-    ├── product.go
-    └── user.go
+
+Let's do the same for our authentication system, place it in a `admin/auth.go`
+file. We now have a separate package that contains everything needed to use
+QOR Admin as well as our authentication system. Our business models and admin
+models are now separated too, thus not polluting the main package. The admin 
+user migration is now separated in another package too, which we need to import
+during our migration phase.
+
+Our `admin/admin.go` can now be simplified like this:
+
+```go
+package admin
+
+import (
+	"path/filepath"
+
+	"github.com/gin-contrib/sessions/cookie"
+	"github.com/gin-gonic/gin"
+	"github.com/jinzhu/gorm"
+	"github.com/qor/admin"
+
+	"github.com/Depado/articles/code/qor/models"
+)
+
+// Admin abstracts the whole QOR Admin + authentication process
+type Admin struct {
+	db        *gorm.DB
+	auth      auth
+	adm       *admin.Admin
+	adminpath string
+	prefix    string
+}
+
+// New will create a new admin using the provided gorm connection, a prefix
+// for the various routes. Prefix can be an empty string. The cookie secret
+// will be used to encrypt/decrypt the cookie on the backend side.
+func New(db *gorm.DB, prefix, cookiesecret string) *Admin {
+	adminpath := filepath.Join(prefix, "/admin")
+	a := Admin{
+		db:        db,
+		prefix:    prefix,
+		adminpath: adminpath,
+		auth: auth{
+			db: db,
+			paths: pathConfig{
+				admin:  adminpath,
+				login:  filepath.Join(prefix, "/login"),
+				logout: filepath.Join(prefix, "/logout"),
+			},
+			session: sessionConfig{
+				key:   "userid",
+				name:  "admsession",
+				store: cookie.NewStore([]byte(cookiesecret)),
+			},
+		},
+	}
+	a.adm = admin.New(&admin.AdminConfig{
+		SiteName: "My Admin Interface", 
+		DB: db, 
+		Auth: a.auth,
+	})
+	addUser(a.adm)
+	a.adm.AddResource(&models.Product{})
+	return &a
+}
 ```
 
-Now let's add a `admin/admin.go` file in which put our admin definition and
-another extra structure:
+[You can see the `admin` package here.](https://github.com/Depado/articles/tree/master/code/qor/admin)
 
+### The login template
+
+One issue left is the login template which needs to be served so our user is
+faced with a nice looking login form when attempting to reach the admin
+interface. For now, we'll just add [this file](https://github.com/Depado/articles/tree/master/code/qor/admin/templates/login.html) inside a `templates` directory. This template is a simple HTML file
+with a vertically/horizontally centered login form using 
+[spectre.css](https://picturepan2.github.io/spectre/index.html).
+
+### Router binding
+
+Now we have everything we need to bind ourselves to an already existing gin 
+router!
+
+```go
+func (a Admin) Bind(r *gin.Engine) {
+	r.LoadHTMLGlob("admin/templates/*")
+
+	mux := http.NewServeMux()
+	a.adm.MountTo(a.adminpath, mux)
+	
+	g := r.Group(a.prefix)
+	g.Use(sessions.Sessions(a.auth.session.name, a.auth.session.store))
+	{
+		g.Any("/admin/*resources", gin.WrapH(mux))
+		g.GET("/login", a.auth.GetLogin)
+		g.POST("/login", a.auth.PostLogin)
+		g.GET("/logout", a.auth.GetLogout)
+	}
+}
 ```
 
+Note that we are currently loading our `login.html` template directly. This will
+change when we'll see how to embed all your assets in the binary. And now we 
+just have to modify our `main.go` and see how easy it is to use our new package!
+
+```go
+r := gin.New()
+a := admin.New(db, "", "secret")
+a.Bind(r)
+r.Run("127.0.0.1:8080")
 ```
+
+![login](/assets/qor-admin/login.gif)
 
 # Deployment and Bindatafs
 

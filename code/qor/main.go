@@ -1,15 +1,13 @@
 package main
 
 import (
-	"net/http"
-
 	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/postgres"
-	"github.com/qor/admin"
 	"github.com/sirupsen/logrus"
 
-	"github.com/Depado/articles/code/qor/v1/migrate"
+	"github.com/Depado/articles/code/qor/admin"
+	"github.com/Depado/articles/code/qor/migrate"
 )
 
 func main() {
@@ -26,11 +24,8 @@ func main() {
 		logrus.WithError(err).Fatal("Couldn't run migration")
 	}
 
-	adm := admin.New(&admin.AdminConfig{SiteName: "Admin", DB: db})
-	mux := http.NewServeMux()
-	adm.MountTo("/admin", mux)
-
 	r := gin.New()
-	r.Any("/admin/*resources", gin.WrapH(mux))
+	a := admin.New(db, "", "secret")
+	a.Bind(r)
 	r.Run("127.0.0.1:8080")
 }

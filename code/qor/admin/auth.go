@@ -11,8 +11,6 @@ import (
 	"github.com/qor/admin"
 	"github.com/qor/qor"
 	"github.com/sirupsen/logrus"
-
-	"github.com/Depado/articles/code/qor/v1/models"
 )
 
 // Auth is a structure to handle authentication for QOR. It will satisify the
@@ -41,7 +39,7 @@ func (a *auth) GetLogin(c *gin.Context) {
 		c.Redirect(http.StatusSeeOther, a.paths.admin)
 		return
 	}
-	c.HTML(http.StatusOK, "login", gin.H{})
+	c.HTML(http.StatusOK, "login.html", gin.H{})
 }
 
 // PostLogin is the handler to check if the user can connect
@@ -53,8 +51,8 @@ func (a *auth) PostLogin(c *gin.Context) {
 		c.Redirect(http.StatusSeeOther, a.paths.login)
 		return
 	}
-	var u models.AdminUser
-	if a.db.Where(&models.AdminUser{Email: email}).First(&u).RecordNotFound() {
+	var u User
+	if a.db.Where(&User{Email: email}).First(&u).RecordNotFound() {
 		c.Redirect(http.StatusSeeOther, a.paths.login)
 		return
 	}
@@ -101,7 +99,7 @@ func (a auth) GetCurrentUser(c *admin.Context) qor.CurrentUser {
 		return nil
 	}
 
-	var user models.AdminUser
+	var user User
 	if !a.db.First(&user, "id = ?", userid).RecordNotFound() {
 		return &user
 	}
