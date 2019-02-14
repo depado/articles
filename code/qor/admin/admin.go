@@ -55,6 +55,8 @@ func New(db *gorm.DB, prefix, cookiesecret string) *Admin {
 	return &a
 }
 
+// Bind will bind the admin interface to an already existing gin router
+// (*gin.Engine).
 func (a Admin) Bind(r *gin.Engine) {
 	mux := http.NewServeMux()
 	a.adm.MountTo(a.adminpath, mux)
