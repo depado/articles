@@ -691,12 +691,164 @@ r.Run("127.0.0.1:8080")
 
 # Deployment and Bindatafs
 
+## Why?
+
+There is a [deployment section](https://doc.getqor.com/admin/deploy.html) in the
+QOR Admin docs. The issue here is that QOR Admin serves its own templates/css/js
+files from your filesystem when you use it. Basically, when you import QOR Admin
+and bind it to a router, it starts serving its own assets from the directory
+where it is installed. This is problematic when deploying to production, because
+we need a way either to embed the assets directly inside the binary or ship
+our binary with all the assets alongside. [BindataFS](https://github.com/qor/bindatafs)
+solves the first problem, embedding assets inside our binary. 
+
 This part was tricky. As in, really tricky and it took me a lot of time to
-actually understand what was going on.
+actually understand what was going on. 
+
+## Install & Initialize
+
+First we'll install BindataFS, and initialize it inside a directory in our 
+`admin` directory. I'm assuming you followed the article to this point and have
+a directory structure with an `admin` directory which holds all the things
+related to QOR Admin. If not, then initialize bindatafs where you like, just
+remember the path where you initialized it.
+
+```sh
+$ go get -u -f github.com/qor/bindatafs/...
+$ # You will also need this:
+$ go get -u github.com/containous/go-bindata
+$ bindatafs admin/bindatafs
+Initalizing BindataFS...
+copy from .../src/github.com/qor/bindatafs/templates to admin/bindatafs
+$ tree
+├── admin
+│   ├── admin.go
+│   ├── auth.go
+│   ├── bindatafs
+│   │   ├── bindatafs.go
+│   │   └── templates.go
+│   ├── templates
+│   │   └── login.html
+│   └── user.go
+…
+```
+
+So bindatafs created a directory where we told it, and added two files: 
+`templates.go` and `bindatafs.go`. Alright cool. But now we want to compile 
+QOR's assets.
+
+## Finding QOR Admin's Assets
+
+We're going to create a new package inside our `admin` package, and name it
+`compile` with a `main.go` inside it. This program will do a simple thing:
+Find and compile QOR Admin's assets, as well as our login template. Because
+of course we also need to take care of our `login.html` template!
+
+You can [find this file here](https://github.com/Depado/articles/tree/master/code/qor/admin/compile/).
+
+This program will search in the most common places of package installation and
+will look for a package that contains the `views` directory (containing the 
+assets). Of course you'll need to tweak the import path of the `bindatafs` 
+package to match your own bindatafs path. It will look in the following 
+directories:
+
+- `$GOPATH/pkg/mod/`
+- `$GOPATH/src/`
+- `./vendor/`
+
+This program is not perfect though, for example it doesn't know whether you're
+using gomodules or not, it will just grab the first version of QOR it finds.
+
+```
+$ go run admin/compile/main.go
+DEBU[0000] Found QOR Views Directory path=…/Go/pkg/mod/github.com/qor/admin@v0.0.0-20190116035234-0f96b498bae7/views
+DEBU[0000] Highest candidate found   path=…/Go/pkg/mod/github.com/qor/admin@v0.0.0-20190116035234-0f96b498bae7/views
+Compiling templates...
+```
+
+Once our program found the highest candidate, it will register it using the
+`bindatafs` we imported at the top of the file, which is, your bindatafs.
+Now some things happened in your `admin/bindatafs` directory:
+
+- You now have a **huge** `templates_bindatags.go` file
+- You now have a `templates/` directory containing the assets separated by
+  namespaces that bindatafs grabbed from the directories you gave it
+
+How does that work then? You may notice at the start of the 
+`templates_bindata.go` that there's a compilation instruction: 
+`// +build bindatafs`. Meaning this file will be ignored at compile time if
+you don't pass the `-tags 'bindatafs'` when running `go build` or `go run`. If
+you omit this flag, then the local filesystem is used, and that's why bindatafs
+copied the assets in a large `templates/` directory. 
+
+## Using BindataFS
+
+Now that we have successfully found QOR Admin's assets and used bindatafs to
+compile them as well as our login template, we need to modify our `admin.go` 
+file to reflect the changes. First let's modify our `New` func so that our
+admin interface uses bindatafs:
+
+```go
+import (
+		//	…
+		"github.com/Depado/articles/code/qor/admin/bindatafs"
+)
+// …
+func New(db *gorm.DB, prefix, cookiesecret string) *Admin {
+	// …
+	a.adm = admin.New(&admin.AdminConfig{
+		SiteName: "My Admin Interface",
+		DB:       db,
+		Auth:     a.auth,
+		AssetFS:  bindatafs.AssetFS.NameSpace("admin"),
+	})
+	// …
+}
+```
+
+Then we'll modify our `Bind` function so that our login template is also loaded
+from bindatafs:
+
+```go
+func (a Admin) Bind(r *gin.Engine) {
+	mux := http.NewServeMux()
+	a.adm.MountTo(a.adminpath, mux)
+
+	lfs := bindatafs.AssetFS.NameSpace("login")
+	lfs.RegisterPath("admin/templates/")
+	logintpl, err := lfs.Asset("login.html")
+	if err != nil {
+		logrus.WithError(err).Fatal("Unable to find HTML template for login page in admin")
+	}
+	r.SetHTMLTemplate(template.Must(template.New("login.html").Parse(string(logintpl))))
+
+	g := r.Group(a.prefix)
+	g.Use(sessions.Sessions(a.auth.session.name, a.auth.session.store))
+	{
+		g.Any("/admin/*resources", gin.WrapH(mux))
+		g.GET("/login", a.auth.GetLogin)
+		g.POST("/login", a.auth.PostLogin)
+		g.GET("/logout", a.auth.GetLogout)
+	}
+}
+```
+
+## BindataFS Build
+
+Now that we registered our assets with bindatafs and modified our admin methods
+to handle them, this allows us to do two things:
+
+- `go run main.go` will run our code and use assets that are on disk
+- `go run -tags 'bindatafs' main.go` will run our code but will embed our 
+  assets in the generated binary
+- `go build -tags 'bindatags'` will compile our code to a static binary and 
+  embed all your assets in said binary, thus allowing us to deploy it without
+	worrying about assets
 
 # Thanks
 
 - Gin-Gonic Framework Logo by
   [Javier Provecho](https://github.com/javierprovecho) is licensed under a
   [Creative Commons Attribution 4.0 International License](http://creativecommons.org/licenses/by/4.0/).
-- Scientist Gopher by [marcusolsson](https://github.com/marcusolsson) from the [gophers repo](https://github.com/marcusolsson/gophers)
+- Scientist Gopher by [marcusolsson](https://github.com/marcusolsson) from the 
+  [gophers repo](https://github.com/marcusolsson/gophers)

@@ -1,6 +1,7 @@
 package admin
 
 import (
+	"html/template"
 	"net/http"
 	"path/filepath"
 
@@ -9,7 +10,9 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/gorm"
 	"github.com/qor/admin"
+	"github.com/sirupsen/logrus"
 
+	"github.com/Depado/articles/code/qor/admin/bindatafs"
 	"github.com/Depado/articles/code/qor/models"
 )
 
@@ -49,6 +52,7 @@ func New(db *gorm.DB, prefix, cookiesecret string) *Admin {
 		SiteName: "My Admin Interface",
 		DB:       db,
 		Auth:     a.auth,
+		AssetFS:  bindatafs.AssetFS.NameSpace("admin"),
 	})
 	addUser(a.adm)
 	a.adm.AddResource(&models.Product{})
@@ -61,13 +65,13 @@ func (a Admin) Bind(r *gin.Engine) {
 	mux := http.NewServeMux()
 	a.adm.MountTo(a.adminpath, mux)
 
-	r.LoadHTMLGlob("admin/templates/*")
-
-	// logintpl, err := bindatafs.AssetFS.NameSpace("login").Asset("login.html")
-	// if err != nil {
-	// 	logrus.WithError(err).Fatal("Unable to find HTML template for login page in backoffice")
-	// }
-	// r.SetHTMLTemplate(template.Must(template.New("login").Parse(string(logintpl))))
+	lfs := bindatafs.AssetFS.NameSpace("login")
+	lfs.RegisterPath("admin/templates/")
+	logintpl, err := lfs.Asset("login.html")
+	if err != nil {
+		logrus.WithError(err).Fatal("Unable to find HTML template for login page in admin")
+	}
+	r.SetHTMLTemplate(template.Must(template.New("login.html").Parse(string(logintpl))))
 
 	g := r.Group(a.prefix)
 	g.Use(sessions.Sessions(a.auth.session.name, a.auth.session.store))
