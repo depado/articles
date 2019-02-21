@@ -375,9 +375,9 @@ way of handling it, we need to add said error to the `context.DB` that will
 be displayed to our user if it's not empty at the end of the query (meaning, you
 can add more than one throughout your setter). 
 
-And once all that is done, we type assert that the resource is of type 
-`AdminUser` and we set its `Password` field to the new password we just
-hashed.
+And once all that is done, we [type assert](https://tour.golang.org/methods/15) 
+that the resource is of type `AdminUser` and we set its `Password` field to the 
+new password we just hashed.
 
 ![user-add](/assets/qor-admin/user-add.png)
 
@@ -538,10 +538,10 @@ func (a *Auth) GetLogout(c *gin.Context) {
 }
 ```
 
-When the user submits the form with its credentials, the endpoint checks in the
+When the user submits the form with his credentials, the endpoint checks in the
 database if the user exists and if the provided password matches the one stored
 in database. If both conditions match, then we update the `LastLogin` field of
-our user, save it in database, update its session and redirects it to the admin 
+our user, save it in database, update its session and redirect it to the admin 
 interface endpoint. Upon reaching this endpoint, the `GetCurrentUser` function
 is executed and now returns our user because it has the proper session values,
 thus granting access to the admin.
@@ -698,7 +698,7 @@ QOR Admin docs. The issue here is that QOR Admin serves its own templates/css/js
 files from your filesystem when you use it. Basically, when you import QOR Admin
 and bind it to a router, it starts serving its own assets from the directory
 where it is installed. This is problematic when deploying to production, because
-we need a way either to embed the assets directly inside the binary or ship
+we need a way to either embed the assets directly inside the binary or ship
 our binary with all the assets alongside. [BindataFS](https://github.com/qor/bindatafs)
 solves the first problem, embedding assets inside our binary. 
 
@@ -711,7 +711,7 @@ First we'll install BindataFS, and initialize it inside a directory in our
 `admin` directory. I'm assuming you followed the article to this point and have
 a directory structure with an `admin` directory which holds all the things
 related to QOR Admin. If not, then initialize bindatafs where you like, just
-remember the path where you initialized it.
+remember the path where you did it.
 
 ```sh
 $ go get -u -f github.com/qor/bindatafs/...
@@ -749,7 +749,7 @@ You can [find this file here](https://github.com/Depado/articles/tree/master/cod
 This program will search in the most common places of package installation and
 will look for a package that contains the `views` directory (containing the 
 assets). Of course you'll need to tweak the import path of the `bindatafs` 
-package to match your own bindatafs path. It will look in the following 
+package to match your own bindatafs path. It will search in the following 
 directories:
 
 - `$GOPATH/pkg/mod/`
@@ -845,8 +845,171 @@ to handle them, this allows us to do two things:
   embed all your assets in said binary, thus allowing us to deploy it without
 	worrying about assets
 
+# Handling Unsupported Types
+
+## pq.StringArray
+
+In my [gorm post](/post/gorm-gotchas) I recently added a section on how to 
+handle a specific type of column in PostgreSQL: arrays. The trick is to use
+`pq.StringArray` as the column type in your model because even though under the 
+hood it's just a `[]string`, it implements the 
+[driver.Valuer](https://golang.org/pkg/database/sql/driver/#Valuer) and 
+[sql.Scanner](https://golang.org/pkg/database/sql/#Scanner) interfaces so that
+gorm knows how to handle this type. 
+
+This is what you need to do if you ever want to implement your own type of data
+as a column. 
+
+## Adding Tags to Product
+
+Let's assume we just added a new column (a new field) in our `Product` struct.
+We also need to create a new migration to handle properly this new field. This
+is the perfect case for gorm's AutoMigrate feature that detects model changes
+and reflect them in the database.
+
+```go
+type Product struct {
+	ID        uuid.UUID `gorm:"primary_key;type:uuid;default:uuid_generate_v4()"`
+	CreatedAt time.Time
+	UpdatedAt time.Time
+	DeletedAt *time.Time
+
+	Name  string
+	Price int
+	Tags  pq.StringArray `gorm:"type:varchar(100)[]"`
+}
+```
+
+```go
+var productTags = &gormigrate.Migration{
+	ID: "product_tags",
+	Migrate: func(tx *gorm.DB) error {
+		type product struct {
+			ID        uuid.UUID `gorm:"primary_key;type:uuid;default:uuid_generate_v4()"`
+			CreatedAt time.Time
+			UpdatedAt time.Time
+			DeletedAt *time.Time
+			Name      string
+			Price     int
+			Tags      pq.StringArray `gorm:"type:varchar(100)[]"`
+		}
+		return tx.AutoMigrate(&product{}).Error
+	}, Rollback: func(tx *gorm.DB) error {
+		type product struct {
+			ID        uuid.UUID `gorm:"primary_key;type:uuid;default:uuid_generate_v4()"`
+			CreatedAt time.Time
+			UpdatedAt time.Time
+			DeletedAt *time.Time
+			Name      string
+			Price     int
+			Tags      pq.StringArray `gorm:"type:varchar(100)[]"`
+		}
+		return tx.Model(&product{}).DropColumn("tags").Error
+	},
+}
+```
+
+## QOR Admin and Tags
+
+If we try to run our admin again, it will work, but upon opening the edit or 
+create views for our products, this happens:
+
+![template](/assets/qor-admin/tags-template.png)
+
+The error is not very clear, but this means that QOR Admin has no idea on how
+to render this kind of field. So we are going to tell QOR what to do with that.
+The easiest way I found to edit this kind of field is to display it as a 
+comma-separated input. 
+
+So let's add a Meta to our Product admin interface, just like we did for our 
+user's password:
+
+```go
+func AddProduct(adm *admin.Admin) {
+	p := adm.AddResource(&models.Product{})
+	p.Meta(&admin.Meta{
+		Name: "Tags",
+		Type: "string",
+		Valuer: func(record interface{}, context *qor.Context) (result interface{}) { // nolint: unparam
+			s := record.(*models.Product)
+			var out string
+			for _, t := range s.Tags {
+				if out == "" {
+					out = t
+					continue
+				}
+				out = fmt.Sprintf("%s, %s", out, t)
+			}
+			return out
+		},
+		Setter: func(record interface{}, metaValue *resource.MetaValue, context *qor.Context) { // nolint: unparam
+			s := record.(*models.Product)
+			values := metaValue.Value.([]string)
+			s.Tags = pq.StringArray{}
+			if len(values) > 0 && values[0] != "" {
+				tags := strings.Split(values[0], ",")
+				for _, t := range tags {
+					s.Tags = append(s.Tags, strings.TrimSpace(t))
+				}
+			}
+		},
+	})
+}
+```
+
+![input](/assets/qor-admin/tags-input.png)
+
+## Display Tweak
+
+We can now edit our tags. But it looks kind of ugly in our index view. This
+step is entirely optional and just adds some style. One trick to display some
+pretty tags in our index view, is to not display the `Tags` column, but add a
+new virtual field called `Tag`:
+
+```go
+p.IndexAttrs("ID", "Name", "Price", "Tag")
+p.EditAttrs("Name", "Price", "Tags")
+p.NewAttrs("Name", "Price", "Tags")
+p.Meta(&admin.Meta{
+	Name: "Tag",
+	Valuer: func(record interface{}, context *qor.Context) interface{} { // nolint: unparam
+		p := record.(*models.Product)
+		var out string
+		var tot int
+		badge := `<span style="background-color: rgb(33,150,243); padding: 5px; border-radius: 25%%; color: white; margin-right: 5px;">%s</span>`
+		for _, t := range p.Tags {
+			if tot+len(t) >= 30 {
+				more := fmt.Sprintf(badge, "…")
+				out = fmt.Sprintf("%s%s", out, more)
+				break
+			}
+			tot += len(t)
+			tt := fmt.Sprintf(badge, t)
+			if out == "" {
+				out = tt
+				continue
+			}
+			out = fmt.Sprintf("%s%s", out, tt)
+		}
+		return template.HTML(out) // nolint: gosec
+	},
+})
+```
+
+A few notes here. First, we're going to explicitly define the fields that are
+displayed depending on the action we're doing:
+- On the index view (the list), we want to see our new "friendly" `Tag` field
+- But when editing or creating, we want to see our `Tags` field (our string input)
+
+This virtual field is computed and returns some HTML span elements with embedded
+style. Of course this is not the prettiest way of doing things, but it works and
+it renders pretty well on our index:
+
+![tags](/assets/qor-admin/tags.gif)
+
 # Thanks
 
+- [klx``](https://twitter.com/kalin0x) for proofreading this post ♥
 - Gin-Gonic Framework Logo by
   [Javier Provecho](https://github.com/javierprovecho) is licensed under a
   [Creative Commons Attribution 4.0 International License](http://creativecommons.org/licenses/by/4.0/).

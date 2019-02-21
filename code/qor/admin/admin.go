@@ -13,7 +13,7 @@ import (
 	"github.com/sirupsen/logrus"
 
 	"github.com/Depado/articles/code/qor/admin/bindatafs"
-	"github.com/Depado/articles/code/qor/models"
+	"github.com/Depado/articles/code/qor/admin/resources"
 )
 
 // Admin abstracts the whole QOR Admin + authentication process
@@ -55,7 +55,7 @@ func New(db *gorm.DB, prefix, cookiesecret string) *Admin {
 		AssetFS:  bindatafs.AssetFS.NameSpace("admin"),
 	})
 	addUser(a.adm)
-	a.adm.AddResource(&models.Product{})
+	resources.AddProduct(a.adm)
 	return &a
 }
 

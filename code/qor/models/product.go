@@ -3,6 +3,8 @@ package models
 import (
 	"time"
 
+	"github.com/lib/pq"
+
 	uuid "github.com/satori/go.uuid"
 )
 
@@ -15,4 +17,5 @@ type Product struct {
 
 	Name  string
 	Price int
+	Tags  pq.StringArray `gorm:"type:varchar(100)[]"`
 }

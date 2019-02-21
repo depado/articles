@@ -13,6 +13,7 @@ func Start(db *gorm.DB) error {
 		uuidCheck,
 		initial,
 		admin.AdminUserMigration,
+		productTags,
 	})
 	return m.Migrate()
 }
