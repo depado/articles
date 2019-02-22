@@ -5,7 +5,7 @@ description: |
     started
 slug: qor-admin-tutorial
 banner: "/assets/qor-admin/banner.png"
-draft: true
+draft: false
 date: 2019-02-11 17:30:00
 tags: [go,dev,admin,qor]
 
