@@ -148,7 +148,7 @@ so we'll keep things simple. If you need more information on how to
 use gorm, please refer to my [Gorm Gotchas](/post/gorm-gotchas) post. 
 
 We'll add a few migrations which you can find in
-[the code associated to this post](https://github.com/Depado/articles/blob/master/code/qor/migrations/).
+[the code associated to this post](https://github.com/Depado/articles/blob/master/code/qor/migrate/).
 These migrations (`uuidCheck` and `initial`) are used to check if the
 `uuid-ossp` extension exists in the database we're connecting to, and to create
 our `products` table. Simply import the `migrate` package and run:
