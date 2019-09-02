@@ -38,11 +38,11 @@ Frameworks like [Django](https://www.djangoproject.com/) give you an admin
 interface to manage your data. This is great because it allows you to display
 data in a web interface, modify it or execute one-shot actions on some
 records. For example, it's rather easy to create a CSV export of one of your
-tables in the form a single button that any admin can click on, thus avoiding
+tables in the form of a single button that any admin can click on, thus avoiding
 the usual SQL query to export data, if you know what I mean.
 
 It also enables to modify data and more importantly **keep it consistent** by
-writing your business rules as part of your admin interface. So we can prevent
+writing your business rules directly in your admin interface. So we can prevent
 someone from modifying one of our products and set the price to $0 (or 0€, or
 whatever the currency, you get my point). Or prevent data loss. Or set specific
 behavior for certain fields. The admin interface use-case is then completely

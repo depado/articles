@@ -9,7 +9,44 @@ tags:
     - ci-cd
 draft: true
 
-# Introduction
+# Title
+
+## Subtitle
+
+!!! note "Optional Title"
+    This the is the *content* of my **note**
+
+Other markdown content
+
+!!! note "Note"
+    This is a simple note.
+
+!!! warning
+	A warning without title
+
+!!! danger "Dangerous Stuff Ahead"
+    Danger admonition
+
+!!! hint "Advice and Hints"
+    Add advices and hints
+
+!!! success "Success"
+    This was a success.
+
+Let's go back to non-admonition markdown now. 
+**And see if that works properly.**
+
+# H1
+
+## H2
+
+### H3
+
+#### H4
+
+##### H5
+
+###### H6
 
 ## Goals and scope
 
