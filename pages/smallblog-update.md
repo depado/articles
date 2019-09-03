@@ -108,6 +108,24 @@ The type of the admonition is always required, otherwise it won't be parsed. The
 title is optional and you can add extra CSS classes in between the type and the
 title.
 
+## Caption Pictures
+
+You can now add a caption to the pictures you insert in your posts.
+This feature can be achieved by adding the caption in an `em` element 
+(basically, surrounding the caption with `*`) right next or below the picture 
+insertion.
+
+```markdown
+![alt](/path/to/image.jpg)
+*Caption or Description*
+```
+
+```markdown
+![alt](/path/to/image.jpg) *Caption or Description*
+```
+
+![test](/assets/avatar.jpg) *This is the caption*
+
 # Technical Changes
 
 In this section we'll see how those features were implemented and what changed
@@ -248,3 +266,8 @@ myrenderer := bfp.NewRenderer(
   ),
 )
 ```
+
+This library doesn't import the previously mentionned lib, as to only have one
+`RenderNode` method and avoid getting too deep in the call stack. (I'm guessing
+it's more efficient that way instead of going through 5 `RenderNode` function 
+every time)
