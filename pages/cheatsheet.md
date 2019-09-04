@@ -62,9 +62,11 @@ func main() {
 
 ## Inline Code
 
-    This `text` should be displayed as `code`.
+```md
+This `text` should be displayed as `code`.
 
-    Also, let's `try with a lot of chars as well`.
+Also, let's `try with a lot of chars as well`.
+```
 
 This `text` should be displayed as `code`.
 
@@ -74,36 +76,56 @@ Also, let's `try with a lot of chars as well`.
 
 ## With Title
 
-    !!! note "Title"
-        This is a `note` with a title.
+```md
+!!! note "Title"
+    This is a `note` with a title.
+```
 
 !!! note "Title"
     This is a `note` with a title.
 
 ## Without Title
 
-    !!! warning
-        This is a `warning` admonition without a title.
+```md
+!!! warning
+    This is a `warning` admonition without a title.
+```
 
 !!! warning
     This is a `warning` admonition without a title.
 
 ## Extra Class
 
-    !!! danger wow "wow"
-        This a `danger` admonition with the `wow` CSS class.
+```md
+!!! danger wow "wow"
+    This a `danger` admonition with the `wow` CSS class.
+```
 
 !!! danger wow "wow"
     This a `danger` admonition with the `wow` CSS class.
+
+## Unknown Type
+
+```md
+!!! unknown "Unknown Admonition Type"
+    This is an `unknown` admonition, it will render just like a `note`/`info` 
+    one.
+```
+
+!!! unknown "Unknown Admonition Type"
+    This is an `unknown` admonition, it will render just like a `note`/`info` 
+    one.
 
 # Tables
 
 ## With Heading
 
-    | Column 1   | Column 2  |
-    |------------|-----------|
-    | First Row  | First Row |
-    | Third Row  | Third Row |
+```md
+| Column 1   | Column 2  |
+|------------|-----------|
+| First Row  | First Row |
+| Third Row  | Third Row |
+```
 
 | Column 1   | Column 2  |
 |------------|-----------|
@@ -112,11 +134,13 @@ Also, let's `try with a lot of chars as well`.
 
 ## Without Heading
 
-    |            |            |
-    |------------|------------|
-    | First Row  | First Row  |
-    | Second Row | Second Row |
-    | Third Row  | Third Row  |
+```md
+|            |            |
+|------------|------------|
+| First Row  | First Row  |
+| Second Row | Second Row |
+| Third Row  | Third Row  |
+```
 
 |            |            |
 |------------|------------|
@@ -126,10 +150,12 @@ Also, let's `try with a lot of chars as well`.
 
 ## Markdown Inside
 
-    | Column 1       | Column 2       |
-    |----------------|----------------|
-    | **First Row**  |  _First Row_   |
-    | `Second Row`   | ~~Second Row~~ |
+```md
+| Column 1       | Column 2       |
+|----------------|----------------|
+| **First Row** |  _First Row_   |
+| `Second Row`   | ~~Second Row~~ |
+```
 
 | Column 1       | Column 2       |
 |----------------|----------------|
@@ -151,19 +177,25 @@ culpa qui officia deserunt mollit anim id est laborum.
 
 ## Simple Picture
 
-    ![test](/assets/avatar.jpg)
+```md
+![test](/assets/avatar.jpg)
+```
 
 ![test](/assets/avatar.jpg)
 
 ## Picture with hover title
 
-    ![test](/assets/avatar.jpg "Doge")
+```md
+![test](/assets/avatar.jpg "Doge")
+```
 
 ![test](/assets/avatar.jpg "Doge")
 
 ## Picture with Caption
 
-    ![test](/assets/avatar.jpg) *Picture Caption or Description*
+```md
+![test](/assets/avatar.jpg) *Picture Caption or Description*
+```
 
 ![test](/assets/avatar.jpg) *Picture Caption or Description*
 
