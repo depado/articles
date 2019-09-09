@@ -126,6 +126,50 @@ insertion.
 
 ![test](/assets/avatar.jpg) *This is the caption*
 
+## Stylish Details
+
+Detail tags are useful when you want users to click on some content to reveal
+it. Smallblog now have some styled details that follows the same design rules
+as the admonitions. 
+
+<details class="warning"><summary>Click to Open</summary>
+
+You can **easily** add markdown in there since the `HTML` tags are not 
+interpreted. You can even add codeblocks in there!
+
+```go
+fmt.Println("That is amazing.")
+```
+</details>
+
+In addition to all the classes that match the admonitions ones, there's a
+special class that allows for clean code display: `code`.
+
+<details class="code"><summary>Code</summary>
+
+    <details class="warning"><summary>Click to Open</summary>
+
+    You can **easily** add markdown in there since the `HTML` tags are not 
+    interpreted. You can even add codeblocks in there!
+
+    ```go
+    fmt.Println("That is amazing.")
+    ```
+    </details>
+</details>
+
+This `code` details block is intended to have one big chunk of code inside and
+nothing else. You can also have a details block already open.
+
+<details open=""><summary>Hey there</summary>
+
+I'm already open you see. So people can see me first and hide me if I'm really 
+boring them. 
+</details>
+
+Have a look at the [Smallblog Cheatsheet](/post/cheatsheet) for
+more information.
+
 # Technical Changes
 
 In this section we'll see how those features were implemented and what changed
