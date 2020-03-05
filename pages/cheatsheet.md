@@ -5,7 +5,7 @@ description: |
     cheatlist.
 slug: cheatsheet
 banner: ""
-draft: true
+draft: false
 date: 2019-09-03 10:00:00
 tags: [markdown,render]
 
