@@ -4,7 +4,7 @@ description: |
     they were implemented and how you can also implement them on your own.
 slug: smallblog-update
 banner: ""
-draft: true
+draft: false
 date: 2019-08-26 14:00:00
 tags: [go,dev,markdown]
 
@@ -210,10 +210,7 @@ this allowed to create a mixin to handle all the admonition types like so:
     @include admonition(map-get($colors, "info"), map-get($icons, "note"));
   }
   &.question {
-    @include admonition(
-      map-get($colors, "question"),
-      map-get($icons, "question")
-    );
+    @include admonition(map-get($colors, "question"), map-get($icons, "question"));
   }
   // More of those admonition types
 }

@@ -841,7 +841,7 @@ to handle them, this allows us to do two things:
 - `go run main.go` will run our code and use assets that are on disk
 - `go run -tags 'bindatafs' main.go` will run our code but will embed our 
   assets in the generated binary
-- `go build -tags 'bindatags'` will compile our code to a static binary and 
+- `go build -tags 'bindatafs'` will compile our code to a static binary and 
   embed all your assets in said binary, thus allowing us to deploy it without
 	worrying about assets
 

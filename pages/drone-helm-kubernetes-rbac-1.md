@@ -6,6 +6,12 @@ tags: ["ci-cd", "drone", "helm", "kubernetes", "rbac"]
 date: "2018-05-16 10:31:27"
 draft: false
 
+!!! danger "Deprecation Notice"
+  Kubernetes technologies move very fast, thus the following three-part tutorial
+  may not be up to date at all. Note that Drone now supports Kubernetes as a
+  pipeline provider, which effectively transforms pipelines into Kubernetes
+  jobs.
+
 # Introduction
 
 Continuous integration and delivery is hard. This is a fact everyone can agree
