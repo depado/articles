@@ -770,7 +770,7 @@ Once our program found the highest candidate, it will register it using the
 `bindatafs` we imported at the top of the file, which is, your bindatafs.
 Now some things happened in your `admin/bindatafs` directory:
 
-- You now have a **huge** `templates_bindatags.go` file
+- You now have a **huge** `templates_bindatafs.go` file
 - You now have a `templates/` directory containing the assets separated by
   namespaces that bindatafs grabbed from the directories you gave it
 
