@@ -132,7 +132,8 @@ representation of that error, the one that we can read and make sense of. But
 that's not the actual error. We know that Gin's validator will return 
 [validator.ValidationErrors](https://pkg.go.dev/github.com/go-playground/validator/v10?tab=doc#ValidationErrors)
 if a validation error occurs, basically it will just send back the error it
-encountered. And what we can do now is called **type assertion**:
+encountered. And what we can do now is called 
+[type assertion](https://tour.golang.org/methods/15):
 
 ```go
 func PostSomeData(c *gin.Context) {
@@ -144,12 +145,24 @@ func PostSomeData(c *gin.Context) {
             log.Info().Err(verr).Msg("this is actually a validation error")
         }
         
-		c.JSON(http.StatusBadRequest, gin.H{"error": "field validation failed"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "bad request"})
 		return
 	}
 	// Data is OK
 }
 ```
+
+> A type assertion provides access to an interface value's underlying concrete 
+> value.
+>
+> <cite>[Tour of Go](https://tour.golang.org/methods/15)</cite>
+
+Basically what this mean is that we know `err` is an error (that implements the
+`error` interface) but we also suspect it's a `validator.ValidationErrors`, so 
+we try to assert the error type to access the underlying 
+`validator.ValidationErrors` that implements `error`. If the type assertion
+fails, then it's not a validation issue, and we can define another behavior, 
+for example if the request body is an invalid JSON.
 
 Using type assertion, we can now determine the error returned by the 
 `ShouldBind` method. And as of Go 1.13 we now have a more "friendly" way of
@@ -166,7 +179,7 @@ func PostSomeData(c *gin.Context) {
 			log.Info().Err(verr).Msg("this is actually a validation error")
         }
         
-		c.JSON(http.StatusBadRequest, gin.H{"error": "field validation failed"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "bad request"})
 		return
 	}
 	// Data is OK
