@@ -1,7 +1,7 @@
 module github.com/Depado/articles/code/dialogflowpb
 
 require (
-	github.com/gin-gonic/gin v1.7.0
+	github.com/gin-gonic/gin v1.7.7
 	github.com/golang/protobuf v1.3.3
 	github.com/sirupsen/logrus v1.0.6
 	google.golang.org/genproto v0.0.0-20180912233945-5a2fd4cab2d6
